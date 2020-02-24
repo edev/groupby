@@ -40,6 +40,7 @@ impl GroupedCollection {
 // Can easily be used standalone or via GroupedCollection.
 
 /// Returns the first `n` characters of `line`, or all of `line` if `n > line.len()`.
+/// If `line == ""` or `n == 0`, returns `""`.
 ///
 /// ```
 /// let line = "Hello, world";
@@ -49,6 +50,16 @@ impl GroupedCollection {
 /// ```
 /// let line = "Hi";
 /// assert_eq!("Hi", groupby::match_first_n_chars(line, 5));
+/// ```
+///
+/// ```
+/// let line = "";
+/// assert_eq!("", groupby::match_first_n_chars(line, 8));
+/// ```
+///
+/// ```
+/// let line = "This is not an empty string.";
+/// assert_eq!("", groupby::match_first_n_chars(line, 0));
 /// ```
 pub fn match_first_n_chars(line: &str, n: usize) -> &str {
     if n > line.len() {

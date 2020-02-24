@@ -1,4 +1,7 @@
 use clap::{App, Arg};
+use groupby::*;
+use std::io;
+use std::io::BufRead;
 use std::process::{Command, Stdio};
 
 // The environment variable that stores the name of the current shell.
@@ -33,8 +36,19 @@ fn main() {
         )
         .get_matches();
 
-    if let Some(n) = matches.value_of("first_chars") {
-        println!("NYI: -f {}", n);
+    // Initial test code.
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        let line = line.unwrap();
+        if let Some(n) = matches.value_of("first_chars") {
+            match n.parse() {
+                Ok(n) => println!("{}", match_first_n_chars(&line, n)),
+                Err(e) => {
+                    println!("{}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
     }
 
     if let Some(cmd) = matches.value_of("run_command") {

@@ -14,19 +14,23 @@ fn main() {
             "Reads lines from standard input and groups them by common \
              substrings. Prints the resulting groups to standard output.",
         )
-        .arg(Arg::with_name("first_chars")
-             .short("f")
-             .value_name("n")
-             .help("Group by equivalence on the first n characters.")
-             .takes_value(true))
-        .arg(Arg::with_name("run_command")
-             .short("c")
-             .value_name("cmd")
-             .help(
-                 "Execute command cmd for each group, passing the group via \
-                  standard input, one match per line."
-             )
-             .takes_value(true))
+        .arg(
+            Arg::with_name("first_chars")
+                .short("f")
+                .value_name("n")
+                .help("Group by equivalence on the first n characters.")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("run_command")
+                .short("c")
+                .value_name("cmd")
+                .help(
+                    "Execute command cmd for each group, passing the group via \
+                  standard input, one match per line.",
+                )
+                .takes_value(true),
+        )
         .get_matches();
 
     if let Some(n) = matches.value_of("first_chars") {

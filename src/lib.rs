@@ -28,10 +28,10 @@ impl GroupedCollection {
             .insert(match_first_n_chars(&line, n).to_string(), line);
     }
 
-    pub fn group_by_last_chars(line: String, n: usize) {}
-    pub fn group_by_first_words(line: String, n: usize) {}
-    pub fn group_by_last_words(line: String, n: usize) {}
-    pub fn group_by_regexp(line: String, re: String) {} // Change re to regex. Mocked for simplicity.
+    pub fn group_by_last_chars(&mut self, line: String, n: usize) {}
+    pub fn group_by_first_words(&mut self, line: String, n: usize) {}
+    pub fn group_by_last_words(&mut self, line: String, n: usize) {}
+    pub fn group_by_regexp(&mut self, line: String, re: String) {} // Change re to regex. Mocked for simplicity.
 
     // ...
 }

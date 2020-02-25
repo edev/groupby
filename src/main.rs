@@ -1,7 +1,7 @@
 use clap::{crate_authors, crate_version, App, Arg, ArgGroup};
 use groupby::*;
 use std::io;
-use std::io::BufRead;
+use std::io::{BufRead, BufWriter, Write};
 use std::process::{Command, Stdio};
 
 // The environment variable that stores the name of the current shell.
@@ -15,7 +15,7 @@ fn main() {
         .author(crate_authors!())
         .version(crate_version!())
         .long_about(
-            "Reads lines from standard input and groups them by common substrings. Prints the resulting groups to standard output.\n\
+            "Reads lines from standard input and groups them by common substrings. Prints the resulting groups to standard output unless -c is used.\n\
              \n\
              One and only one grouping option must be specified.",
         )
@@ -53,36 +53,47 @@ fn main() {
         )
         .get_matches();
 
-    // Extract the grouping function to use so that we only perform this logic once (rather than
-    // for each line).
-    let mut grouping_function: Box<dyn FnMut(String)> = if let Some(n) =
-        matches.value_of("first_chars")
     {
-        match n.parse::<usize>() {
-            Ok(n) => Box::new(move |s| grouped_collection.group_by_first_chars(s, n)),
-            Err(_) => {
-                eprintln!("Error: {} is not a whole number.", n);
-                std::process::exit(1);
+        // Extract the grouping function to use so that we only perform this logic once (rather than
+        // for each line).
+        let mut grouping_function: Box<dyn FnMut(String)> = if let Some(n) =
+            matches.value_of("first_chars")
+        {
+            match n.parse::<usize>() {
+                Ok(n) => {
+                    let coll = &mut grouped_collection;
+                    Box::new(move |s| coll.group_by_first_chars(s, n))
+                },
+                Err(_) => {
+                    eprintln!("Error: {} is not a whole number.", n);
+                    std::process::exit(1);
+                }
             }
-        }
-    } else if let Some(n) = matches.value_of("last_chars") {
-        match n.parse::<usize>() {
-            Ok(n) => Box::new(move |s| grouped_collection.group_by_last_chars(s, n)),
-            Err(_) => {
-                eprintln!("Error: {} is not a whole number.", n);
-                std::process::exit(1);
+        } else if let Some(n) = matches.value_of("last_chars") {
+            match n.parse::<usize>() {
+                Ok(n) => {
+                    let coll = &mut grouped_collection;
+                    Box::new(move |s| coll.group_by_last_chars(s, n))
+                },
+                Err(_) => {
+                    eprintln!("Error: {} is not a whole number.", n);
+                    std::process::exit(1);
+                }
             }
-        }
-    } else {
-        panic!("No grouping operation was specified, but Clap didn't catch it. Please report this error!");
-    };
+        } else {
+            panic!("No grouping operation was specified, but Clap didn't catch it. Please report this error!");
+        };
 
-    let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        let line = line.unwrap();
-        grouping_function(line.clone());
+        // Process each line of input.
+        let stdin = io::stdin();
+        for line in stdin.lock().lines() {
+            let line = line.unwrap();
+            grouping_function(line.clone());
+        }
     }
+    
 
+    // Generate the required outputs.
     if let Some(cmd) = matches.value_of("run_command") {
         // Retrieve the current shell for later use (if needed).
         let shell = match std::env::var(SHELL_VAR) {
@@ -96,18 +107,30 @@ fn main() {
             }
         };
 
-        // For testing: simply run the command as shell -c <args>
-        //
-        // Invoke a new shell and run it with the provided arguments.
-        // Note that we actually explicitly invoke a shell because the shell is
-        // responsible for parsing the command string, which might (very likely)
-        // have pipes, etc. This also frees the user to use whatever shell they
-        // might prefer and to use its features (at least in theory).
-        let shell_args = ["-c", &cmd];
-        Command::new(shell)
-            .args(&shell_args)
-            .stdout(Stdio::inherit())
-            .output()
-            .expect("Shell command failed.");
+        for (key, values) in grouped_collection.iter() {
+            println!("<<< Group: {} >>>", key);
+
+            // Invoke a new shell and run it with the provided arguments.
+            // Note that we actually explicitly invoke a shell because the shell is
+            // responsible for parsing the command string, which might (very likely)
+            // have pipes, etc. This also frees the user to use whatever shell they
+            // might prefer and to use its features (at least in theory).
+            let shell_args = ["-c", &cmd];
+            let mut child = Command::new(&shell)
+                .args(&shell_args)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::inherit())
+                .spawn()
+                .expect("Shell command failed.");
+            {
+                let mut writer = BufWriter::new(child.stdin.as_mut().unwrap());
+                for line in values.iter() {
+                    writer.write(line.as_bytes()).unwrap();
+                    writer.write(b"\n").unwrap();
+                }
+                writer.flush().unwrap();
+            }
+            child.wait().unwrap();
+        }
     }
 }

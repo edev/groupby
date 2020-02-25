@@ -3,15 +3,33 @@
 #![allow(unused_variables)]
 
 use std::collections::HashMap;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 // A collection of groups, with associated functions for inserting into and processing groups.
 #[derive(Default, Clone)]
 pub struct GroupedCollection {
     // A hash map of vectors or something like that goes here.
-    groups: HashMap<String, String>,
+    groups: HashMap<String, Vec<String>>,
 }
 
-// impl Iterator for GroupedCollection, returning a vector or something from the iterator.
+pub struct GroupedCollectionIter<'a> {
+    collection: &'a GroupedCollection,
+    keys: Vec<&'a String>,
+    current: usize
+}
+
+impl<'a> Iterator for GroupedCollectionIter<'a> {
+    type Item = (&'a String, &'a Vec<String>);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.current {
+            x if x < self.keys.len() => {
+                self.current += 1;
+                self.collection.groups.get_key_value(self.keys[self.current-1])
+            },
+            _ => None
+        }
+    }
+}
 
 impl GroupedCollection {
     pub fn new() -> Self {
@@ -24,13 +42,19 @@ impl GroupedCollection {
     // you should.
 
     pub fn group_by_first_chars(&mut self, line: String, n: usize) {
-        self.groups
-            .insert(match_first_n_chars(&line, n).to_string(), line);
+        let key = match_first_n_chars(&line, n).to_string();
+        match self.groups.entry(key) {
+            Occupied(mut vec) => { vec.get_mut().push(line); },
+            Vacant(slot) => { slot.insert(vec![line]); }
+        }
     }
 
     pub fn group_by_last_chars(&mut self, line: String, n: usize) {
-        self.groups
-            .insert(match_last_n_chars(&line, n).to_string(), line);
+        let key = match_last_n_chars(&line, n).to_string();
+        match self.groups.entry(key) {
+            Occupied(mut vec) => { vec.get_mut().push(line); },
+            Vacant(slot) => { slot.insert(vec![line]); }
+        }
     }
 
     pub fn group_by_first_words(&mut self, line: String, n: usize) {}
@@ -38,6 +62,16 @@ impl GroupedCollection {
     pub fn group_by_regexp(&mut self, line: String, re: String) {} // Change re to regex. Mocked for simplicity.
 
     // ...
+
+    pub fn iter(&self) -> GroupedCollectionIter {
+        let mut keys = self.groups.keys().collect::<Vec<&String>>();
+        keys.sort();
+        GroupedCollectionIter {
+            collection: &self,
+            keys,
+            current: 0
+        }
+    }
 }
 
 // Easily testable matchers that correspond to the implementations above.

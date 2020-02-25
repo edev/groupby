@@ -1,4 +1,4 @@
-use clap::{App, Arg};
+use clap::{crate_authors, crate_version, App, Arg, ArgGroup};
 use groupby::*;
 use std::io;
 use std::io::BufRead;
@@ -7,16 +7,19 @@ use std::process::{Command, Stdio};
 // The environment variable that stores the name of the current shell.
 const SHELL_VAR: &str = "SHELL";
 
-// For plumbing the basic shell I/O, we'll read all the arguments
-// and pass them along to the user's default shell as sh -c <args>
 fn main() {
+    let mut grouped_collection = GroupedCollection::new();
+
     // Use clap to parse command-line arguments.
     let matches = App::new("Groupby")
-        .author("Dylan Laufenberg <dylan.laufenberg@gmail.com>")
-        .about(
-            "Reads lines from standard input and groups them by common \
-             substrings. Prints the resulting groups to standard output.",
+        .author(crate_authors!())
+        .version(crate_version!())
+        .long_about(
+            "Reads lines from standard input and groups them by common substrings. Prints the resulting groups to standard output.\n\
+             \n\
+             One and only one grouping option must be specified.",
         )
+        // Grouping arguments.
         .arg(
             Arg::with_name("first_chars")
                 .short("f")
@@ -24,31 +27,44 @@ fn main() {
                 .help("Group by equivalence on the first n characters.")
                 .takes_value(true),
         )
+        // Add grouping arguments to a Clap ArgGroup.
+        .group(
+            ArgGroup::with_name("grouping")
+                .required(true)
+                .args(&[
+                    "first_chars",
+                ]),
+        )
+        // Output arguments.
         .arg(
             Arg::with_name("run_command")
                 .short("c")
                 .value_name("cmd")
-                .help(
-                    "Execute command cmd for each group, passing the group via \
-                  standard input, one match per line.",
-                )
+                .help("Execute command cmd for each group, passing the group via standard input, one match per line.")
                 .takes_value(true),
         )
         .get_matches();
 
-    // Initial test code.
+    // Extract the grouping function to use so that we only perform this logic once (rather than
+    // for each line).
+    let mut grouping_function: Box<dyn FnMut(String)> = if let Some(n) =
+        matches.value_of("first_chars")
+    {
+        match n.parse::<usize>() {
+            Ok(n) => Box::new(move |s| grouped_collection.group_by_first_chars(s, n)),
+            Err(_) => {
+                eprintln!("Error: {} is not a whole number.", n);
+                std::process::exit(1);
+            }
+        }
+    } else {
+        panic!("No grouping operation was specified, but Clap didn't catch it. Please report this error!");
+    };
+
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let line = line.unwrap();
-        if let Some(n) = matches.value_of("first_chars") {
-            match n.parse() {
-                Ok(n) => println!("{}", match_first_n_chars(&line, n)),
-                Err(e) => {
-                    println!("{}", e);
-                    std::process::exit(1);
-                }
-            }
-        }
+        grouping_function(line.clone());
     }
 
     if let Some(cmd) = matches.value_of("run_command") {

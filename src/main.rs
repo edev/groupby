@@ -27,12 +27,20 @@ fn main() {
                 .help("Group by equivalence on the first n characters.")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("last_chars")
+                .short("l")
+                .value_name("n")
+                .help("Group by equivalence on the last n characters.")
+                .takes_value(true),
+        )
         // Add grouping arguments to a Clap ArgGroup.
         .group(
             ArgGroup::with_name("grouping")
                 .required(true)
                 .args(&[
                     "first_chars",
+                    "last_chars"
                 ]),
         )
         // Output arguments.
@@ -52,6 +60,14 @@ fn main() {
     {
         match n.parse::<usize>() {
             Ok(n) => Box::new(move |s| grouped_collection.group_by_first_chars(s, n)),
+            Err(_) => {
+                eprintln!("Error: {} is not a whole number.", n);
+                std::process::exit(1);
+            }
+        }
+    } else if let Some(n) = matches.value_of("last_chars") {
+        match n.parse::<usize>() {
+            Ok(n) => Box::new(move |s| grouped_collection.group_by_last_chars(s, n)),
             Err(_) => {
                 eprintln!("Error: {} is not a whole number.", n);
                 std::process::exit(1);

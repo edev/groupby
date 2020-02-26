@@ -211,5 +211,5 @@ fn output_results(grouped_collection: &GroupedCollection, matches: &ArgMatches) 
 }
 
 fn print_group_header(key: &str) {
-    println!("\n<<< Group: {} >>>", key);
+    println!("\n{}:", key);
 }

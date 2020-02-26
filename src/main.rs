@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_version, App, Arg, ArgGroup};
+use clap::{crate_authors, crate_version, App, Arg, ArgGroup, ArgMatches};
 use groupby::*;
 use std::io;
 use std::io::{BufRead, BufWriter, Write};
@@ -10,63 +10,7 @@ const SHELL_VAR: &str = "SHELL";
 fn main() {
     let mut grouped_collection = GroupedCollection::new();
 
-    // Use clap to parse command-line arguments.
-    let matches = App::new("Groupby")
-        .author(crate_authors!())
-        .version(crate_version!())
-        .long_about(
-            "Reads lines from standard input and groups them by common substrings. Prints the resulting groups to standard output unless -c is used.\n\
-             \n\
-             One and only one grouping option must be specified.",
-        )
-        // Grouping arguments.
-        .arg(
-            Arg::with_name("first_chars")
-                .short("f")
-                .value_name("n")
-                .help("Group by equivalence on the first n characters.")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("last_chars")
-                .short("l")
-                .value_name("n")
-                .help("Group by equivalence on the last n characters.")
-                .takes_value(true),
-        )
-        // Add grouping arguments to a Clap ArgGroup.
-        .group(
-            ArgGroup::with_name("grouping")
-                .required(true)
-                .args(&[
-                    "first_chars",
-                    "last_chars"
-                ]),
-        )
-        // Output arguments.
-        .arg(
-            Arg::with_name("print0")
-                .long("print0")
-                .help("When outputting lines, separate them with a null character rather than a newline. This option is meant for compatibility with xargs -0.")
-        )
-        .arg(
-            Arg::with_name("printspace")
-                .long("printspace")
-                .help("When outputting lines, separate them with a space rather than a newline.")
-        )
-        .arg(
-            Arg::with_name("only_output_group_names")
-                .long("matches")
-                .help("Instead of outputting lines, output the matched text that forms each group.")
-        )
-        .arg(
-            Arg::with_name("run_command")
-                .short("c")
-                .value_name("cmd")
-                .help("Execute command cmd for each group, passing the group via standard input, one match per line.")
-                .takes_value(true),
-        )
-        .get_matches();
+    let matches = args();
 
     {
         // Extract the grouping function to use so that we only perform this logic once (rather than
@@ -178,6 +122,72 @@ fn main() {
             }
         }
     }
+}
+
+// Use clap to parse command-line arguments.
+fn args<'a>() -> ArgMatches<'a> {
+    App::new("Groupby")
+        // Basic app info.
+        .author(crate_authors!())
+        .version(crate_version!())
+        .long_about(
+            "Reads lines from standard input and groups them by common substrings. Prints the resulting groups to standard output unless -c is used.\n\
+             \n\
+             One and only one grouping option must be specified.",
+        )
+
+        // Grouping arguments.
+        .arg(
+            Arg::with_name("first_chars")
+                .short("f")
+                .value_name("n")
+                .help("Group by equivalence on the first n characters.")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("last_chars")
+                .short("l")
+                .value_name("n")
+                .help("Group by equivalence on the last n characters.")
+                .takes_value(true),
+        )
+
+        // Add grouping arguments to a Clap ArgGroup.
+        .group(
+            ArgGroup::with_name("grouping")
+                .required(true)
+                .args(&[
+                    "first_chars",
+                    "last_chars"
+                ]),
+        )
+
+        // Output arguments.
+        .arg(
+            Arg::with_name("print0")
+                .long("print0")
+                .help("When outputting lines, separate them with a null character rather than a newline. This option is meant for compatibility with xargs -0.")
+        )
+        .arg(
+            Arg::with_name("printspace")
+                .long("printspace")
+                .help("When outputting lines, separate them with a space rather than a newline.")
+        )
+        .arg(
+            Arg::with_name("only_output_group_names")
+                .long("matches")
+                .help("Instead of outputting lines, output the matched text that forms each group.")
+        )
+        .arg(
+            Arg::with_name("run_command")
+                .short("c")
+                .value_name("cmd")
+                .help("Execute command cmd for each group, passing the group via standard input, one match per line.")
+                .takes_value(true),
+        )
+
+        // Retrieve and return the actual arguments provided by the user.
+        .get_matches()
 }
 
 fn print_group_header(key: &str) {

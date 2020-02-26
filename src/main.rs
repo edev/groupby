@@ -143,5 +143,13 @@ fn main() {
             }
             child.wait().unwrap();
         }
+    } else {
+        // Default behavior: print to standard output.
+        for (key, values) in grouped_collection.iter() {
+            println!("<<< Group: {} >>>", key);
+            for line in values.iter() {
+                println!("{}", line);
+            }
+        }
     }
 }

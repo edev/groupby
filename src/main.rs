@@ -68,7 +68,7 @@ fn main() {
                 Ok(n) => {
                     let coll = &mut grouped_collection;
                     Box::new(move |s| coll.group_by_first_chars(s, n))
-                },
+                }
                 Err(_) => {
                     eprintln!("Error: {} is not a whole number.", n);
                     std::process::exit(1);
@@ -79,7 +79,7 @@ fn main() {
                 Ok(n) => {
                     let coll = &mut grouped_collection;
                     Box::new(move |s| coll.group_by_last_chars(s, n))
-                },
+                }
                 Err(_) => {
                     eprintln!("Error: {} is not a whole number.", n);
                     std::process::exit(1);
@@ -96,13 +96,13 @@ fn main() {
             grouping_function(line.clone());
         }
     }
-    
-    let line_separator: &[u8] =
-        if matches.is_present("print0") {
-            b"\0"
-        } else {
-            b"\n"
-        };
+
+    // Determine what line separator the user wants.
+    let line_separator: &[u8] = if matches.is_present("print0") {
+        b"\0"
+    } else {
+        b"\n"
+    };
 
     // Generate the required outputs.
     if let Some(cmd) = matches.value_of("run_command") {
@@ -119,7 +119,7 @@ fn main() {
         };
 
         for (key, values) in grouped_collection.iter() {
-            println!("<<< Group: {} >>>", key);
+            print_group_header(key);
 
             // Invoke a new shell and run it with the provided arguments.
             // Note that we actually explicitly invoke a shell because the shell is
@@ -146,10 +146,14 @@ fn main() {
     } else {
         // Default behavior: print to standard output.
         for (key, values) in grouped_collection.iter() {
-            println!("<<< Group: {} >>>", key);
+            print_group_header(key);
             for line in values.iter() {
                 println!("{}", line);
             }
         }
     }
+}
+
+fn print_group_header(key: &str) {
+    println!("<<< Group: {} >>>", key);
 }

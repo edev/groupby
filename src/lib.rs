@@ -2,8 +2,8 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::HashMap;
 
 // A collection of groups, with associated functions for inserting into and processing groups.
 #[derive(Default, Clone)]
@@ -15,7 +15,7 @@ pub struct GroupedCollection {
 pub struct GroupedCollectionIter<'a> {
     collection: &'a GroupedCollection,
     keys: Vec<&'a String>,
-    current: usize
+    current: usize,
 }
 
 impl<'a> Iterator for GroupedCollectionIter<'a> {
@@ -24,9 +24,11 @@ impl<'a> Iterator for GroupedCollectionIter<'a> {
         match self.current {
             x if x < self.keys.len() => {
                 self.current += 1;
-                self.collection.groups.get_key_value(self.keys[self.current-1])
-            },
-            _ => None
+                self.collection
+                    .groups
+                    .get_key_value(self.keys[self.current - 1])
+            }
+            _ => None,
         }
     }
 }
@@ -44,16 +46,24 @@ impl GroupedCollection {
     pub fn group_by_first_chars(&mut self, line: String, n: usize) {
         let key = match_first_n_chars(&line, n).to_string();
         match self.groups.entry(key) {
-            Occupied(mut vec) => { vec.get_mut().push(line); },
-            Vacant(slot) => { slot.insert(vec![line]); }
+            Occupied(mut vec) => {
+                vec.get_mut().push(line);
+            }
+            Vacant(slot) => {
+                slot.insert(vec![line]);
+            }
         }
     }
 
     pub fn group_by_last_chars(&mut self, line: String, n: usize) {
         let key = match_last_n_chars(&line, n).to_string();
         match self.groups.entry(key) {
-            Occupied(mut vec) => { vec.get_mut().push(line); },
-            Vacant(slot) => { slot.insert(vec![line]); }
+            Occupied(mut vec) => {
+                vec.get_mut().push(line);
+            }
+            Vacant(slot) => {
+                slot.insert(vec![line]);
+            }
         }
     }
 
@@ -69,7 +79,7 @@ impl GroupedCollection {
         GroupedCollectionIter {
             collection: &self,
             keys,
-            current: 0
+            current: 0,
         }
     }
 }
@@ -133,6 +143,6 @@ pub fn match_last_n_chars(line: &str, n: usize) -> &str {
     if n > line.len() {
         line
     } else {
-        &line[(line.len()-n)..]
+        &line[(line.len() - n)..]
     }
 }

@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use regex::Regex;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 
@@ -144,5 +145,18 @@ pub fn match_last_n_chars(line: &str, n: usize) -> &str {
         line
     } else {
         &line[(line.len() - n)..]
+    }
+}
+
+/// Returns the first match of the regular expression within the given line, if any.
+///
+/// ```
+/// let first_word = regex::Regex::new(r"\w+").unwrap();
+/// assert_eq!("Bishop", groupby::match_regex("Bishop takes queen", &first_word).unwrap());
+/// ```
+pub fn match_regex<'a, 'b>(line: &'a str, regex: &'b Regex) -> Option<&'a str> {
+    match regex.find(line) {
+        Some(mat) => Some(&line[(mat.start())..(mat.end())]),
+        None => None,
     }
 }

@@ -1,5 +1,6 @@
 use clap::{crate_authors, crate_version, App, Arg, ArgGroup, ArgMatches};
 use groupby::*;
+use regex::Regex;
 use std::io;
 use std::io::{BufRead, BufWriter, Write};
 use std::process::{Command, Stdio};
@@ -42,6 +43,14 @@ fn args<'a>() -> ArgMatches<'a> {
                 .help("Group by equivalence on the last n characters.")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("regex")
+                .short("r")
+                .long("regex")
+                .value_name("pattern")
+                .help("Group by equivalence on the first match against the specified regex pattern.")
+                .takes_value(true)
+        )
 
         // Add grouping arguments to a Clap ArgGroup.
         .group(
@@ -49,7 +58,8 @@ fn args<'a>() -> ArgMatches<'a> {
                 .required(true)
                 .args(&[
                     "first_chars",
-                    "last_chars"
+                    "last_chars",
+                    "regex"
                 ]),
         )
 
@@ -101,6 +111,16 @@ fn process_input(grouped_collection: &mut GroupedCollection, matches: &ArgMatche
             Ok(n) => Box::new(move |s| grouped_collection.group_by_last_chars(s, n)),
             Err(_) => {
                 eprintln!("Error: {} is not a whole number.", n);
+                std::process::exit(1);
+            }
+        }
+    } else if let Some(pattern) = matches.value_of("regex") {
+        // Compile the regex just once, then move it into the closure, where it will be reused
+        // to check every line of input.
+        match Regex::new(pattern) {
+            Ok(re) => Box::new(move |s| grouped_collection.group_by_regex(s, &re)),
+            Err(e) => {
+                eprintln!("{}", e); // The provided messages are actually really good.
                 std::process::exit(1);
             }
         }

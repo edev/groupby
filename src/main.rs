@@ -50,6 +50,11 @@ fn main() {
                 .help("When outputting lines, separate them with a null character rather than a newline. This option is meant for compatibility with xargs -0.")
         )
         .arg(
+            Arg::with_name("printspace")
+                .long("printspace")
+                .help("When outputting lines, separate them with a space rather than a newline.")
+        )
+        .arg(
             Arg::with_name("run_command")
                 .short("c")
                 .value_name("cmd")
@@ -100,6 +105,8 @@ fn main() {
     // Determine what line separator the user wants.
     let line_separator: &[u8] = if matches.is_present("print0") {
         b"\0"
+    } else if matches.is_present("printspace") {
+        b" "
     } else {
         b"\n"
     };
@@ -155,5 +162,5 @@ fn main() {
 }
 
 fn print_group_header(key: &str) {
-    println!("<<< Group: {} >>>", key);
+    println!("\n<<< Group: {} >>>", key);
 }

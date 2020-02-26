@@ -55,6 +55,11 @@ fn main() {
                 .help("When outputting lines, separate them with a space rather than a newline.")
         )
         .arg(
+            Arg::with_name("only_output_group_names")
+                .long("matches")
+                .help("Instead of outputting lines, output the matched text that forms each group.")
+        )
+        .arg(
             Arg::with_name("run_command")
                 .short("c")
                 .value_name("cmd")
@@ -111,6 +116,9 @@ fn main() {
         b"\n"
     };
 
+    // Determine what to print for output.
+    let only_output_group_names: bool = matches.is_present("only_output_group_names");
+
     // Generate the required outputs.
     if let Some(cmd) = matches.value_of("run_command") {
         // Retrieve the current shell for later use (if needed).
@@ -126,7 +134,9 @@ fn main() {
         };
 
         for (key, values) in grouped_collection.iter() {
-            print_group_header(key);
+            if !only_output_group_names {
+                print_group_header(key);
+            }
 
             // Invoke a new shell and run it with the provided arguments.
             // Note that we actually explicitly invoke a shell because the shell is
@@ -142,9 +152,14 @@ fn main() {
                 .expect("Shell command failed.");
             {
                 let mut writer = BufWriter::new(child.stdin.as_mut().unwrap());
-                for line in values.iter() {
-                    writer.write(line.as_bytes()).unwrap();
-                    writer.write(line_separator).unwrap();
+                if only_output_group_names {
+                    writer.write_all(key.as_bytes()).unwrap();
+                    writer.write_all(line_separator).unwrap();
+                } else {
+                    for line in values.iter() {
+                        writer.write_all(line.as_bytes()).unwrap();
+                        writer.write_all(line_separator).unwrap();
+                    }
                 }
                 writer.flush().unwrap();
             }
@@ -153,9 +168,13 @@ fn main() {
     } else {
         // Default behavior: print to standard output.
         for (key, values) in grouped_collection.iter() {
-            print_group_header(key);
-            for line in values.iter() {
-                println!("{}", line);
+            if only_output_group_names {
+                println!("{}", key);
+            } else {
+                print_group_header(key);
+                for line in values.iter() {
+                    println!("{}", line);
+                }
             }
         }
     }

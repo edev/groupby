@@ -151,13 +151,22 @@ pub fn match_last_n_chars(line: &str, n: usize) -> &str {
 
 /// Returns the first match of the regular expression within the given line, if any.
 ///
+/// If the regular expression includes capture groups, returns the first capture group's match.
+/// Otherwise, returns the overall match.
+///
 /// ```
 /// let first_word = regex::Regex::new(r"\w+").unwrap();
 /// assert_eq!("Bishop", groupby::match_regex("Bishop takes queen", &first_word).unwrap());
 /// ```
 pub fn match_regex<'a, 'b>(line: &'a str, regex: &'b Regex) -> Option<&'a str> {
-    match regex.find(line) {
-        Some(mat) => Some(&line[(mat.start())..(mat.end())]),
+    match regex.captures(line) {
+        Some(caps) => match caps.get(1) {
+            Some(mat) => Some(&line[(mat.start()..mat.end())]),
+            None => match caps.get(0) {
+                Some(mat) => Some(&line[(mat.start()..mat.end())]),
+                None => None,
+            },
+        },
         None => None,
     }
 }

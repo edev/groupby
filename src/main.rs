@@ -48,7 +48,11 @@ fn args<'a>() -> ArgMatches<'a> {
                 .short("r")
                 .long("regex")
                 .value_name("pattern")
-                .help("Group by equivalence on the first match against the specified regex pattern.")
+                .help(
+                    "Group by equivalence on the first match against the specified regex pattern. \
+                     If capture groups are present, group by equivalence on the first capture \
+                     group. If a line does not match, it is stored in the blank group, \"\"."
+                 )
                 .takes_value(true)
         )
 

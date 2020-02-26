@@ -45,6 +45,11 @@ fn main() {
         )
         // Output arguments.
         .arg(
+            Arg::with_name("print0")
+                .long("print0")
+                .help("When outputting lines, separate them with a null character rather than a newline. This option is meant for compatibility with xargs -0.")
+        )
+        .arg(
             Arg::with_name("run_command")
                 .short("c")
                 .value_name("cmd")
@@ -92,6 +97,12 @@ fn main() {
         }
     }
     
+    let line_separator: &[u8] =
+        if matches.is_present("print0") {
+            b"\0"
+        } else {
+            b"\n"
+        };
 
     // Generate the required outputs.
     if let Some(cmd) = matches.value_of("run_command") {
@@ -126,7 +137,7 @@ fn main() {
                 let mut writer = BufWriter::new(child.stdin.as_mut().unwrap());
                 for line in values.iter() {
                     writer.write(line.as_bytes()).unwrap();
-                    writer.write(b"\n").unwrap();
+                    writer.write(line_separator).unwrap();
                 }
                 writer.flush().unwrap();
             }

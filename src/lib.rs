@@ -41,38 +41,39 @@ impl GroupedCollection {
         }
     }
 
+    fn add(&mut self, key: String, line: String) {
+        match self.groups.entry(key) {
+            Occupied(mut vec) => {
+                vec.get_mut().push(line);
+            }
+            Vacant(slot) => {
+                slot.insert(vec![line]);
+            }
+        }
+    }
+
     // Functions to insert lines - you CAN safely mix and match, though it's questionable whether
     // you should.
 
     pub fn group_by_first_chars(&mut self, line: String, n: usize) {
         let key = match_first_n_chars(&line, n).to_string();
-        match self.groups.entry(key) {
-            Occupied(mut vec) => {
-                vec.get_mut().push(line);
-            }
-            Vacant(slot) => {
-                slot.insert(vec![line]);
-            }
-        }
+        self.add(key, line);
     }
 
     pub fn group_by_last_chars(&mut self, line: String, n: usize) {
         let key = match_last_n_chars(&line, n).to_string();
-        match self.groups.entry(key) {
-            Occupied(mut vec) => {
-                vec.get_mut().push(line);
-            }
-            Vacant(slot) => {
-                slot.insert(vec![line]);
-            }
-        }
+        self.add(key, line);
     }
 
-    pub fn group_by_first_words(&mut self, line: String, n: usize) {}
-    pub fn group_by_last_words(&mut self, line: String, n: usize) {}
-    pub fn group_by_regexp(&mut self, line: String, re: String) {} // Change re to regex. Mocked for simplicity.
+    pub fn group_by_regex(&mut self, line: String, regex: &Regex) {
+        let key = match match_regex(&line, &regex) {
+            Some(s) => s,
+            None => "",
+        }
+        .to_string();
 
-    // ...
+        self.add(key, line);
+    }
 
     pub fn iter(&self) -> GroupedCollectionIter {
         let mut keys = self.groups.keys().collect::<Vec<&String>>();

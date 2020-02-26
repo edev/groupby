@@ -9,47 +9,9 @@ const SHELL_VAR: &str = "SHELL";
 
 fn main() {
     let mut grouped_collection = GroupedCollection::new();
-
     let matches = args();
 
-    {
-        // Extract the grouping function to use so that we only perform this logic once (rather than
-        // for each line).
-        let mut grouping_function: Box<dyn FnMut(String)> = if let Some(n) =
-            matches.value_of("first_chars")
-        {
-            match n.parse::<usize>() {
-                Ok(n) => {
-                    let coll = &mut grouped_collection;
-                    Box::new(move |s| coll.group_by_first_chars(s, n))
-                }
-                Err(_) => {
-                    eprintln!("Error: {} is not a whole number.", n);
-                    std::process::exit(1);
-                }
-            }
-        } else if let Some(n) = matches.value_of("last_chars") {
-            match n.parse::<usize>() {
-                Ok(n) => {
-                    let coll = &mut grouped_collection;
-                    Box::new(move |s| coll.group_by_last_chars(s, n))
-                }
-                Err(_) => {
-                    eprintln!("Error: {} is not a whole number.", n);
-                    std::process::exit(1);
-                }
-            }
-        } else {
-            panic!("No grouping operation was specified, but Clap didn't catch it. Please report this error!");
-        };
-
-        // Process each line of input.
-        let stdin = io::stdin();
-        for line in stdin.lock().lines() {
-            let line = line.unwrap();
-            grouping_function(line.clone());
-        }
-    }
+    process_input(&mut grouped_collection, &matches);
 
     // Determine what line separator the user wants.
     let line_separator: &[u8] = if matches.is_present("print0") {
@@ -188,6 +150,41 @@ fn args<'a>() -> ArgMatches<'a> {
 
         // Retrieve and return the actual arguments provided by the user.
         .get_matches()
+}
+
+fn process_input(grouped_collection: &mut GroupedCollection, matches: &ArgMatches) {
+    // Process input.
+
+    // Extract the grouping function to use so that we only perform this logic once
+    // rather than for each line.
+    let mut grouping_function: Box<dyn FnMut(String)> = if let Some(n) =
+        matches.value_of("first_chars")
+    {
+        match n.parse::<usize>() {
+            Ok(n) => Box::new(move |s| grouped_collection.group_by_first_chars(s, n)),
+            Err(_) => {
+                eprintln!("Error: {} is not a whole number.", n);
+                std::process::exit(1);
+            }
+        }
+    } else if let Some(n) = matches.value_of("last_chars") {
+        match n.parse::<usize>() {
+            Ok(n) => Box::new(move |s| grouped_collection.group_by_last_chars(s, n)),
+            Err(_) => {
+                eprintln!("Error: {} is not a whole number.", n);
+                std::process::exit(1);
+            }
+        }
+    } else {
+        panic!("No grouping operation was specified, but Clap didn't catch it. Please report this error!");
+    };
+
+    // Process each line of input.
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        let line = line.unwrap();
+        grouping_function(line.clone());
+    }
 }
 
 fn print_group_header(key: &str) {

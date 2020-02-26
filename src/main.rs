@@ -12,78 +12,7 @@ fn main() {
     let matches = args();
 
     process_input(&mut grouped_collection, &matches);
-
-    // Determine what line separator the user wants.
-    let line_separator: &[u8] = if matches.is_present("print0") {
-        b"\0"
-    } else if matches.is_present("printspace") {
-        b" "
-    } else {
-        b"\n"
-    };
-
-    // Determine what to print for output.
-    let only_output_group_names: bool = matches.is_present("only_output_group_names");
-
-    // Generate the required outputs.
-    if let Some(cmd) = matches.value_of("run_command") {
-        // Retrieve the current shell for later use (if needed).
-        let shell = match std::env::var(SHELL_VAR) {
-            Ok(shell) => shell,
-            Err(e) => {
-                eprintln!(
-                    "Couldn't retrieve environment variable {}: {}",
-                    SHELL_VAR, e
-                );
-                std::process::exit(1);
-            }
-        };
-
-        for (key, values) in grouped_collection.iter() {
-            if !only_output_group_names {
-                print_group_header(key);
-            }
-
-            // Invoke a new shell and run it with the provided arguments.
-            // Note that we actually explicitly invoke a shell because the shell is
-            // responsible for parsing the command string, which might (very likely)
-            // have pipes, etc. This also frees the user to use whatever shell they
-            // might prefer and to use its features (at least in theory).
-            let shell_args = ["-c", &cmd];
-            let mut child = Command::new(&shell)
-                .args(&shell_args)
-                .stdin(Stdio::piped())
-                .stdout(Stdio::inherit())
-                .spawn()
-                .expect("Shell command failed.");
-            {
-                let mut writer = BufWriter::new(child.stdin.as_mut().unwrap());
-                if only_output_group_names {
-                    writer.write_all(key.as_bytes()).unwrap();
-                    writer.write_all(line_separator).unwrap();
-                } else {
-                    for line in values.iter() {
-                        writer.write_all(line.as_bytes()).unwrap();
-                        writer.write_all(line_separator).unwrap();
-                    }
-                }
-                writer.flush().unwrap();
-            }
-            child.wait().unwrap();
-        }
-    } else {
-        // Default behavior: print to standard output.
-        for (key, values) in grouped_collection.iter() {
-            if only_output_group_names {
-                println!("{}", key);
-            } else {
-                print_group_header(key);
-                for line in values.iter() {
-                    println!("{}", line);
-                }
-            }
-        }
-    }
+    output_results(&grouped_collection, &matches);
 }
 
 // Use clap to parse command-line arguments.
@@ -184,6 +113,80 @@ fn process_input(grouped_collection: &mut GroupedCollection, matches: &ArgMatche
     for line in stdin.lock().lines() {
         let line = line.unwrap();
         grouping_function(line.clone());
+    }
+}
+
+fn output_results(grouped_collection: &GroupedCollection, matches: &ArgMatches) {
+    // Determine what line separator the user wants.
+    let line_separator: &[u8] = if matches.is_present("print0") {
+        b"\0"
+    } else if matches.is_present("printspace") {
+        b" "
+    } else {
+        b"\n"
+    };
+
+    // Determine what to print for output.
+    let only_output_group_names: bool = matches.is_present("only_output_group_names");
+
+    // Generate the required outputs.
+    if let Some(cmd) = matches.value_of("run_command") {
+        // Retrieve the current shell for later use (if needed).
+        let shell = match std::env::var(SHELL_VAR) {
+            Ok(shell) => shell,
+            Err(e) => {
+                eprintln!(
+                    "Couldn't retrieve environment variable {}: {}",
+                    SHELL_VAR, e
+                );
+                std::process::exit(1);
+            }
+        };
+
+        for (key, values) in grouped_collection.iter() {
+            if !only_output_group_names {
+                print_group_header(key);
+            }
+
+            // Invoke a new shell and run it with the provided arguments.
+            // Note that we actually explicitly invoke a shell because the shell is
+            // responsible for parsing the command string, which might (very likely)
+            // have pipes, etc. This also frees the user to use whatever shell they
+            // might prefer and to use its features (at least in theory).
+            let shell_args = ["-c", &cmd];
+            let mut child = Command::new(&shell)
+                .args(&shell_args)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::inherit())
+                .spawn()
+                .expect("Shell command failed.");
+            {
+                let mut writer = BufWriter::new(child.stdin.as_mut().unwrap());
+                if only_output_group_names {
+                    writer.write_all(key.as_bytes()).unwrap();
+                    writer.write_all(line_separator).unwrap();
+                } else {
+                    for line in values.iter() {
+                        writer.write_all(line.as_bytes()).unwrap();
+                        writer.write_all(line_separator).unwrap();
+                    }
+                }
+                writer.flush().unwrap();
+            }
+            child.wait().unwrap();
+        }
+    } else {
+        // Default behavior: print to standard output.
+        for (key, values) in grouped_collection.iter() {
+            if only_output_group_names {
+                println!("{}", key);
+            } else {
+                print_group_header(key);
+                for line in values.iter() {
+                    println!("{}", line);
+                }
+            }
+        }
     }
 }
 

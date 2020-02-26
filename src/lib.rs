@@ -1,7 +1,3 @@
-// ONLY for the design phase!
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
 use regex::Regex;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;

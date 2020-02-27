@@ -1,6 +1,6 @@
-use regex::Regex;
-use crate::matchers::*;
 use crate::grouped_collection::*;
+use crate::matchers::*;
+use regex::Regex;
 
 impl GroupedCollection {
     // Functions to insert lines - you CAN safely mix and match, though it's questionable whether
@@ -26,4 +26,3 @@ impl GroupedCollection {
         self.add(key, line);
     }
 }
-

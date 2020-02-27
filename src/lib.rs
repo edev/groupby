@@ -1,6 +1,6 @@
-pub mod matchers;
 pub mod grouped_collection;
 pub mod groupers;
+pub mod matchers;
 
 pub use grouped_collection::*;
 pub use groupers::*;

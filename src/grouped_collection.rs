@@ -26,6 +26,17 @@ impl GroupedCollection {
     }
 
     /// Adds `line` to the group specified by `key`, creating a new group if necessary.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use groupby::grouped_collection::*;
+    /// let mut coll = GroupedCollection::new();
+    /// coll.add("foo".to_string(), "foobarbaz".to_string());
+    /// coll.add("foo".to_string(), "foolish mortal".to_string());
+    /// let expected = vec!["foobarbaz".to_string(), "foolish mortal".to_string()];
+    /// assert_eq!(Some(&expected), coll.get("foo"));
+    /// ```
     pub fn add(&mut self, key: String, line: String) {
         // TODO If generic, rename `line` everywhere
         match self.groups.entry(key) {
@@ -38,10 +49,65 @@ impl GroupedCollection {
         }
     }
 
-    /// Returns a GroupedCollectionIter over the groups in the collection.
+    /// Returns a reference to the list of values associated with `key`, if any.
     ///
-    /// This iterator will iterate over groups in sort order according to their keys, i.e. the
-    /// values that define the groups.
+    /// # Examples
+    ///
+    /// ```
+    /// # use groupby::grouped_collection::*;
+    /// let mut coll = GroupedCollection::new();
+    /// let entries = [
+    ///     ("Favorite fruits", "Bananas"),
+    ///     ("Favorite fruits", "Apples"),
+    ///     ("Types of hats",   "Fedoras")
+    /// ];
+    /// for (k, v) in &entries {
+    ///     coll.add(k.to_string(), v.to_string());
+    /// }
+    ///
+    /// let expected_fruits = vec!["Bananas".to_string(), "Apples".to_string()];
+    /// assert_eq!(Some(&expected_fruits), coll.get("Favorite fruits"));
+    ///
+    /// let expected_hats = vec!["Fedoras".to_string()];
+    /// assert_eq!(Some(&expected_hats), coll.get("Types of hats"));
+    ///
+    /// assert_eq!(None, coll.get("Genres of books"));
+    /// ```
+    pub fn get(&self, key: &str) -> Option<&Vec<String>> {
+        self.groups.get(key)
+    }
+
+    /// Returns an iterator over the groups in the collection that will iterate over groups
+    /// in sort order according to their keys.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use groupby::grouped_collection::*;
+    /// let mut coll = GroupedCollection::new();
+    ///
+    /// let entries = [
+    ///     ("Types of hats",   "Fedoras"),
+    ///     ("Favorite fruits", "Bananas"),
+    ///     ("Favorite fruits", "Apples")
+    /// ];
+    /// for (k, v) in &entries {
+    ///     coll.add(k.to_string(), v.to_string());
+    /// }
+    ///
+    /// let expected_fruits = (
+    ///     "Favorite fruits".to_string(),
+    ///     vec!["Bananas".to_string(), "Apples".to_string()]
+    /// );
+    /// let expected_hats = (
+    ///     "Types of hats".to_string(),
+    ///     vec!["Fedoras".to_string()]
+    /// );
+    /// let mut iter = coll.iter();
+    /// assert_eq!(Some((&expected_fruits.0, &expected_fruits.1)), iter.next());
+    /// assert_eq!(Some((&expected_hats.0, &expected_hats.1)), iter.next());
+    /// assert_eq!(None, iter.next());
+    /// ```
     pub fn iter(&self) -> GroupedCollectionIter {
         let mut keys = self.groups.keys().collect::<Vec<&String>>();
         keys.sort();

@@ -1,10 +1,11 @@
 use regex::Regex;
 
-// Easily testable matchers that correspond to the implementations above.
-// Can easily be used standalone or via GroupedCollection.
+///! A collection of predefined string matchers for some common, universal use cases.
 
 /// Returns the first `n` characters of `line`, or all of `line` if `n > line.len()`.
 /// If `line == ""` or `n == 0`, returns `""`.
+///
+/// # Examples
 ///
 /// ```
 /// let line = "Hello, world";
@@ -35,6 +36,8 @@ pub fn match_first_n_chars(line: &str, n: usize) -> &str {
 
 /// Returns the last `n` characters of `line`, or all of `line` if `n > line.len()`.
 /// If `line == ""` or `n == 0`, returns `""`.
+///
+/// # Examples
 ///
 /// ```
 /// let line = "Hello, world";
@@ -68,9 +71,18 @@ pub fn match_last_n_chars(line: &str, n: usize) -> &str {
 /// If the regular expression includes capture groups, returns the first capture group's match.
 /// Otherwise, returns the overall match.
 ///
+/// # Examples
+///
 /// ```
 /// let first_word = regex::Regex::new(r"\w+").unwrap();
+///
+/// let second_word = regex::Regex::new(r"\w+\W+(\w+)").unwrap();
+///
+/// let third_word = regex::Regex::new(r"(?:\w+\W+){2}(\w+)").unwrap();
+///
 /// assert_eq!("Bishop", groupby::match_regex("Bishop takes queen", &first_word).unwrap());
+/// assert_eq!("takes",  groupby::match_regex("Bishop takes queen", &second_word).unwrap());
+/// assert_eq!("queen",  groupby::match_regex("Bishop takes queen", &third_word).unwrap());
 /// ```
 pub fn match_regex<'a, 'b>(line: &'a str, regex: &'b Regex) -> Option<&'a str> {
     match regex.captures(line) {

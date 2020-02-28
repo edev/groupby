@@ -23,7 +23,7 @@ use regex::Regex;
 /// ```
 ///
 /// ```
-/// let line = "This is not an empty string.";
+/// let line = "This is not a string.";
 /// assert_eq!("", groupby::match_first_n_chars(line, 0));
 /// ```
 pub fn match_first_n_chars(line: &str, n: usize) -> &str {
@@ -55,7 +55,7 @@ pub fn match_first_n_chars(line: &str, n: usize) -> &str {
 /// ```
 ///
 /// ```
-/// let line = "This is not an empty string.";
+/// let line = "This is not a string.";
 /// assert_eq!("", groupby::match_last_n_chars(line, 0));
 /// ```
 pub fn match_last_n_chars(line: &str, n: usize) -> &str {

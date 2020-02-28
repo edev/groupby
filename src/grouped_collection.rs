@@ -1,31 +1,42 @@
+use std::cmp::Eq;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
+use std::hash::Hash;
 
 /// Defines a data structure that can store a collection of items while associating each item with
 /// a group. For instance, when storing a list of strings, one of these structs might enable you to
 /// categorize them according to their first character, then iterate over the strings in each group.
 /// A collection of groups, with associated functions for inserting into and processing groups.
 #[derive(Default, Clone)]
-pub struct GroupedCollection {
-    groups: HashMap<String, Vec<String>>, // TODO If practical, make this generic.
+pub struct GroupedCollection<KeyType, ValueType> 
+where
+    KeyType: Eq + Hash + Ord
+{
+    groups: HashMap<KeyType, Vec<ValueType>>,
 }
 
 /// Defines an iterator over groups in a GroupedCollection. To construct this iterator, see the
 /// `iter()` method of `GroupedCollection`.
-pub struct GroupedCollectionIter<'a> {
-    collection: &'a GroupedCollection,
-    keys: Vec<&'a String>,
+pub struct GroupedCollectionIter<'a, KeyType, ValueType>
+where
+    KeyType: Eq + Hash + Ord
+{
+    collection: &'a GroupedCollection<KeyType, ValueType>,
+    keys: Vec<&'a KeyType>,
     current: usize,
 }
 
-impl GroupedCollection {
+impl<KeyType, ValueType> GroupedCollection<KeyType, ValueType>
+where
+    KeyType: Eq + Hash + Ord
+{
     pub fn new() -> Self {
         Self {
-            groups: HashMap::new(),
+            groups: HashMap::<KeyType, Vec<ValueType>>::new(),
         }
     }
 
-    /// Adds `line` to the group specified by `key`, creating a new group if necessary.
+    /// Adds `value to the group specified by `key`, creating a new group if necessary.
     ///
     /// # Examples
     ///
@@ -35,16 +46,15 @@ impl GroupedCollection {
     /// coll.add("foo".to_string(), "foobarbaz".to_string());
     /// coll.add("foo".to_string(), "foolish mortal".to_string());
     /// let expected = vec!["foobarbaz".to_string(), "foolish mortal".to_string()];
-    /// assert_eq!(Some(&expected), coll.get("foo"));
+    /// assert_eq!(Some(&expected), coll.get(&"foo".to_string()));
     /// ```
-    pub fn add(&mut self, key: String, line: String) {
-        // TODO If generic, rename `line` everywhere
+    pub fn add(&mut self, key: KeyType, value: ValueType) {
         match self.groups.entry(key) {
             Occupied(mut vec) => {
-                vec.get_mut().push(line);
+                vec.get_mut().push(value);
             }
             Vacant(slot) => {
-                slot.insert(vec![line]);
+                slot.insert(vec![value]);
             }
         }
     }
@@ -66,14 +76,14 @@ impl GroupedCollection {
     /// }
     ///
     /// let expected_fruits = vec!["Bananas".to_string(), "Apples".to_string()];
-    /// assert_eq!(Some(&expected_fruits), coll.get("Favorite fruits"));
+    /// assert_eq!(Some(&expected_fruits), coll.get(&"Favorite fruits".to_string()));
     ///
     /// let expected_hats = vec!["Fedoras".to_string()];
-    /// assert_eq!(Some(&expected_hats), coll.get("Types of hats"));
+    /// assert_eq!(Some(&expected_hats), coll.get(&"Types of hats".to_string()));
     ///
-    /// assert_eq!(None, coll.get("Genres of books"));
+    /// assert_eq!(None, coll.get(&"Genres of books".to_string()));
     /// ```
-    pub fn get(&self, key: &str) -> Option<&Vec<String>> {
+    pub fn get(&self, key: &KeyType) -> Option<&Vec<ValueType>> {
         self.groups.get(key)
     }
 
@@ -108,8 +118,8 @@ impl GroupedCollection {
     /// assert_eq!(Some((&expected_hats.0, &expected_hats.1)), iter.next());
     /// assert_eq!(None, iter.next());
     /// ```
-    pub fn iter(&self) -> GroupedCollectionIter {
-        let mut keys = self.groups.keys().collect::<Vec<&String>>();
+    pub fn iter(&self) -> GroupedCollectionIter<KeyType, ValueType> {
+        let mut keys = self.groups.keys().collect::<Vec<&KeyType>>();
         keys.sort();
         GroupedCollectionIter {
             collection: &self,
@@ -119,9 +129,12 @@ impl GroupedCollection {
     }
 }
 
-impl<'a> Iterator for GroupedCollectionIter<'a> {
+impl<'a, KeyType, ValueType> Iterator for GroupedCollectionIter<'a, KeyType, ValueType>
+where
+    KeyType: Eq + Hash + Ord
+{
     /// A single group in a GroupedCollection, consisting of a key and a list of values.
-    type Item = (&'a String, &'a Vec<String>);
+    type Item = (&'a KeyType, &'a Vec<ValueType>);
 
     /// Returns the next group, if any.
     fn next(&mut self) -> Option<Self::Item> {

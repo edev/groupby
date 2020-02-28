@@ -9,7 +9,7 @@ use std::process::{Command, Stdio};
 const SHELL_VAR: &str = "SHELL";
 
 fn main() {
-    let mut grouped_collection = GroupedCollection::new();
+    let mut grouped_collection = GroupedCollection::<String, String>::new();
     let matches = args();
 
     process_input(&mut grouped_collection, &matches);
@@ -95,7 +95,7 @@ fn args<'a>() -> ArgMatches<'a> {
         .get_matches()
 }
 
-fn process_input(grouped_collection: &mut GroupedCollection, matches: &ArgMatches) {
+fn process_input(grouped_collection: &mut GroupedCollection<String, String>, matches: &ArgMatches) {
     // Process input.
 
     // Extract the grouping function to use so that we only perform this logic once
@@ -140,7 +140,7 @@ fn process_input(grouped_collection: &mut GroupedCollection, matches: &ArgMatche
     }
 }
 
-fn output_results(grouped_collection: &GroupedCollection, matches: &ArgMatches) {
+fn output_results(grouped_collection: &GroupedCollection<String, String>, matches: &ArgMatches) {
     // Determine what line separator the user wants.
     let line_separator: &[u8] = if matches.is_present("print0") {
         b"\0"

@@ -124,3 +124,7 @@ Let's discuss what's happening in detail:
 * Since `xargs` delimits arguments in standard input by whitespace (e.g. space characters, newlines, etc.), it won't correctly parse our note file paths, which contain spaces. As a workaround, it provides the `-0` flag to delimit arguments by null characters instead of whitespace. The `find` command has a `-print0` option to delimit its output entries by null characters instead of newlines; `groupy` mimics this behavior with its `--print0` option for the same reason.
 
 * `wc` counts the lines, words, and characters, then passes that information on to the `tail` filter, which (when used with the `-n 1` option) outputs only the summary line from `wc`.
+
+## License
+
+This project is released under the "MIT license". Please see the file [LICENSE](https://github.com/edev/groupby/blob/master/LICENSE) in this distribution for license terms.

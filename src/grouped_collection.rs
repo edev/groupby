@@ -8,9 +8,9 @@ use std::hash::Hash;
 /// categorize them according to their first character, then iterate over the strings in each group.
 /// A collection of groups, with associated functions for inserting into and processing groups.
 #[derive(Default, Clone)]
-pub struct GroupedCollection<KeyType, ValueType> 
+pub struct GroupedCollection<KeyType, ValueType>
 where
-    KeyType: Eq + Hash + Ord
+    KeyType: Eq + Hash + Ord,
 {
     groups: HashMap<KeyType, Vec<ValueType>>,
 }
@@ -19,7 +19,7 @@ where
 /// `iter()` method of `GroupedCollection`.
 pub struct GroupedCollectionIter<'a, KeyType, ValueType>
 where
-    KeyType: Eq + Hash + Ord
+    KeyType: Eq + Hash + Ord,
 {
     collection: &'a GroupedCollection<KeyType, ValueType>,
     keys: Vec<&'a KeyType>,
@@ -28,7 +28,7 @@ where
 
 impl<KeyType, ValueType> GroupedCollection<KeyType, ValueType>
 where
-    KeyType: Eq + Hash + Ord
+    KeyType: Eq + Hash + Ord,
 {
     pub fn new() -> Self {
         Self {
@@ -131,7 +131,7 @@ where
 
 impl<'a, KeyType, ValueType> Iterator for GroupedCollectionIter<'a, KeyType, ValueType>
 where
-    KeyType: Eq + Hash + Ord
+    KeyType: Eq + Hash + Ord,
 {
     /// A single group in a GroupedCollection, consisting of a key and a list of values.
     type Item = (&'a KeyType, &'a Vec<ValueType>);

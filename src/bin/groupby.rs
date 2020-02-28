@@ -28,6 +28,13 @@ fn args<'a>() -> ArgMatches<'a> {
              One and only one grouping option must be specified.",
         )
 
+        // Input arguments.
+        .arg(
+            Arg::with_name("split_on_whitespace")
+                .short("w")
+                .help("Group words instead of lines; that is, split input on whitespace.")
+        )
+
         // Grouping arguments.
         .arg(
             Arg::with_name("first_chars")
@@ -134,9 +141,25 @@ fn process_input(grouped_collection: &mut GroupedCollection<String, String>, mat
 
     // Process each line of input.
     let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        let line = line.unwrap();
-        grouping_function(line.clone());
+    if matches.is_present("split_on_whitespace") {
+        // Split on whitespace and process every resulting token.
+        for line in stdin.lock().lines() {
+            let line = line.unwrap();
+            for word in line.split(char::is_whitespace) {
+                // Skip whitespace; split will go character-by-character, so it will catch every
+                // other whitespace character, which we don't want.
+                if word.chars().all(|c| c.is_whitespace()) {
+                    continue;
+                }
+                grouping_function(word.to_string());
+            }
+        }
+    } else {
+        // PRocess each line as a single token.
+        for line in stdin.lock().lines() {
+            let line = line.unwrap();
+            grouping_function(line.clone());
+        }
     }
 }
 

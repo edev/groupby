@@ -243,12 +243,12 @@ fn process_input(grouped_collection: &mut GroupedCollection<String, String>, opt
 
 fn output_results(grouped_collection: &GroupedCollection<String, String>, options: &GroupByOptions) {
     // Determine what line separator the user wants.
-    let line_separator: &[u8] = if options.output.null_separators == Flag::Set {
-        b"\0"
+    let line_separator = if options.output.null_separators == Flag::Set {
+        "\0"
     } else if options.output.space_separators == Flag::Set {
-        b" "
+        " "
     } else {
-        b"\n"
+        "\n"
     };
 
     // Generate the required outputs.
@@ -286,11 +286,11 @@ fn output_results(grouped_collection: &GroupedCollection<String, String>, option
                 let mut writer = BufWriter::new(child.stdin.as_mut().unwrap());
                 if options.output.only_group_names == Flag::Set {
                     writer.write_all(key.as_bytes()).unwrap();
-                    writer.write_all(line_separator).unwrap();
+                    writer.write_all(line_separator.as_bytes()).unwrap();
                 } else {
                     for line in values.iter() {
                         writer.write_all(line.as_bytes()).unwrap();
-                        writer.write_all(line_separator).unwrap();
+                        writer.write_all(line_separator.as_bytes()).unwrap();
                     }
                 }
                 writer.flush().unwrap();
@@ -301,11 +301,11 @@ fn output_results(grouped_collection: &GroupedCollection<String, String>, option
         // Default behavior: print to standard output.
         for (key, values) in grouped_collection.iter() {
             if options.output.only_group_names == Flag::Set {
-                print!("{}{}", key, std::str::from_utf8(line_separator).unwrap());
+                print!("{}{}", key, line_separator);
             } else {
                 print_group_header(key);
                 for line in values.iter() {
-                    print!("{}{}", line, std::str::from_utf8(line_separator).unwrap());
+                    print!("{}{}", line, line_separator);
                 }
             }
         }

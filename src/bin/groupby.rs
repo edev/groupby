@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_version, App, Arg, ArgGroup, ArgMatches};
+use clap::{crate_authors, crate_version, App, Arg, ArgGroup};
 use groupby::*;
 use regex::Regex;
 use std::io;
@@ -10,15 +10,54 @@ const SHELL_VAR: &str = "SHELL";
 
 fn main() {
     let mut grouped_collection = GroupedCollection::<String, String>::new();
-    let matches = args();
+    let options = args();
 
-    process_input(&mut grouped_collection, &matches);
-    output_results(&grouped_collection, &matches);
+    process_input(&mut grouped_collection, &options);
+    output_results(&grouped_collection, &options);
+}
+
+// Type definitions for handling command-line arguments.
+
+// An option that is either set or not set, i.e. a flag.
+#[derive(PartialEq, Copy, Clone)]
+enum Flag {
+    Set,
+    Unset
+}
+
+// Note: optional arguments that take a value are Option types.
+
+// Input options.
+struct InputOptions {
+    split_on_whitespace: Flag
+}
+
+// Grouping options. These are mutually exclusive, and exactly one must be set.
+enum GroupingOptions {
+    ByFirstChars(usize),
+    ByLastChars(usize),
+    ByRegex(Regex)
+}
+
+// Output options. None, any, or all may be set.
+struct OutputOptions {
+    null_separators: Flag,
+    space_separators: Flag,
+    only_group_names: Flag,
+    run_command: Option<String>
+}
+
+// The options struct that holds all of these options.
+// Note: for safety, users are strongly recommended to own such a struct immutably.
+struct GroupByOptions {
+    input: InputOptions,
+    grouping: GroupingOptions,
+    output: OutputOptions
 }
 
 // Use clap to parse command-line arguments.
-fn args<'a>() -> ArgMatches<'a> {
-    App::new("Groupby")
+fn args<'a>() -> GroupByOptions {
+    let matches = App::new("Groupby")
         // Basic app info.
         .author(crate_authors!())
         .version(crate_version!())
@@ -30,28 +69,28 @@ fn args<'a>() -> ArgMatches<'a> {
 
         // Input arguments.
         .arg(
-            Arg::with_name("split_on_whitespace")
+            Arg::with_name("InputSplitOnWhitespace")
                 .short("w")
                 .help("Group words instead of lines; that is, split input on whitespace.")
         )
 
         // Grouping arguments.
         .arg(
-            Arg::with_name("first_chars")
+            Arg::with_name("GroupByFirstChars")
                 .short("f")
                 .value_name("n")
                 .help("Group by equivalence on the first n characters.")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("last_chars")
+            Arg::with_name("GroupByLastChars")
                 .short("l")
                 .value_name("n")
                 .help("Group by equivalence on the last n characters.")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("regex")
+            Arg::with_name("GroupByRegex")
                 .short("r")
                 .long("regex")
                 .value_name("pattern")
@@ -68,80 +107,119 @@ fn args<'a>() -> ArgMatches<'a> {
             ArgGroup::with_name("grouping")
                 .required(true)
                 .args(&[
-                    "first_chars",
-                    "last_chars",
-                    "regex"
+                    "GroupByFirstChars",
+                    "GroupByLastChars",
+                    "GroupByRegex"
                 ]),
         )
 
         // Output arguments.
         .arg(
-            Arg::with_name("print0")
+            Arg::with_name("OutputNullSeparators")
                 .long("print0")
                 .help("When outputting lines, separate them with a null character rather than a newline. This option is meant for compatibility with xargs -0.")
         )
         .arg(
-            Arg::with_name("printspace")
+            Arg::with_name("OutputSpaceSeparators")
                 .long("printspace")
                 .help("When outputting lines, separate them with a space rather than a newline.")
         )
         .arg(
-            Arg::with_name("only_output_group_names")
+            Arg::with_name("OutputOnlyGroupNames")
                 .long("matches")
                 .help("Instead of outputting lines, output the matched text that forms each group.")
         )
         .arg(
-            Arg::with_name("run_command")
+            Arg::with_name("OutputRunCommand")
                 .short("c")
                 .value_name("cmd")
                 .help("Execute command cmd for each group, passing the group via standard input, one match per line.")
                 .takes_value(true),
         )
 
-        // Retrieve and return the actual arguments provided by the user.
-        .get_matches()
+        // Retrieve the actual arguments provided by the user.
+        .get_matches();
+
+    // Now process the arguments and construct the object to return.
+    GroupByOptions {
+        input: InputOptions {
+            split_on_whitespace: match matches.is_present("InputSplitOnWhitespace") {
+                true => Flag::Set,
+                false => Flag::Unset
+            } 
+        },
+        grouping: if let Some(n) = matches.value_of("GroupByFirstChars") {
+            match n.parse::<usize>() {
+                Ok(n) => GroupingOptions::ByFirstChars(n),
+                Err(_) => {
+                    eprintln!("Error: {} is not a whole number.", n);
+                    std::process::exit(1);
+                }
+            }
+        } else if let Some(n) = matches.value_of("GroupByLastChars") {
+            match n.parse::<usize>() {
+                Ok(n) => GroupingOptions::ByLastChars(n),
+                Err(_) => {
+                    eprintln!("Error: {} is not a whole number.", n);
+                    std::process::exit(1);
+                }
+            }
+        } else if let Some(pattern) = matches.value_of("GroupByRegex") {
+            match Regex::new(pattern) {
+                Ok(re) => GroupingOptions::ByRegex(re),
+                Err(e) => {
+                    eprintln!("{}", e); // The provided messages are actually really good.
+                    std::process::exit(1);
+                }
+            }
+        } else {
+            panic!("No grouping option was specified, but the argument parser didn't catch the issue. Please report this!")
+        },
+        output: OutputOptions {
+            null_separators: match matches.is_present("OutputNullSeparators") {
+                true => Flag::Set,
+                false => Flag::Unset
+            },
+            space_separators: match matches.is_present("OutputSpaceSeparators") {
+                true => Flag::Set,
+                false => Flag::Unset
+            },
+            only_group_names: match matches.is_present("OutputOnlyGroupNames") {
+                true => Flag::Set,
+                false => Flag::Unset
+            },
+            run_command: if let Some(cmd) = matches.value_of("OutputRunCommand") {
+                Some(cmd.to_string())
+            } else {
+                None
+            }
+        }
+    }
 }
 
-fn process_input(grouped_collection: &mut GroupedCollection<String, String>, matches: &ArgMatches) {
+fn process_input(grouped_collection: &mut GroupedCollection<String, String>, options: &GroupByOptions) {
     // Process input.
 
     // Extract the grouping function to use so that we only perform this logic once
     // rather than for each line.
-    let mut grouping_function: Box<dyn FnMut(String)> = if let Some(n) =
-        matches.value_of("first_chars")
-    {
-        match n.parse::<usize>() {
-            Ok(n) => Box::new(move |s| grouped_collection.group_by_first_chars(s, n)),
-            Err(_) => {
-                eprintln!("Error: {} is not a whole number.", n);
-                std::process::exit(1);
-            }
-        }
-    } else if let Some(n) = matches.value_of("last_chars") {
-        match n.parse::<usize>() {
-            Ok(n) => Box::new(move |s| grouped_collection.group_by_last_chars(s, n)),
-            Err(_) => {
-                eprintln!("Error: {} is not a whole number.", n);
-                std::process::exit(1);
-            }
-        }
-    } else if let Some(pattern) = matches.value_of("regex") {
-        // Compile the regex just once, then move it into the closure, where it will be reused
-        // to check every line of input.
-        match Regex::new(pattern) {
-            Ok(re) => Box::new(move |s| grouped_collection.group_by_regex(s, &re)),
-            Err(e) => {
-                eprintln!("{}", e); // The provided messages are actually really good.
-                std::process::exit(1);
-            }
-        }
-    } else {
-        panic!("No grouping operation was specified, but Clap didn't catch it. Please report this error!");
+    let mut grouping_function: Box<dyn FnMut(String)> = match &options.grouping {
+        // Moving/reference notes:
+        // TLDR: Everything we move is a reference, so no meaningful ownership changes occur.
+        // Details:
+        // 1. We need to use "move" closures to move the borrowed references n into the closure,
+        //    or else they will go out of scope.
+        // 2. grouped_collection is intentionally a mutable reference specifically intended to be
+        //    moved into whichever closure we construct.
+        // 3. We move re into the ByRegex closure, but it, too, is a reference, so we are not
+        //    partially moving anything out of GroupByOptions.
+        GroupingOptions::ByFirstChars(n) => Box::new(move |s| grouped_collection.group_by_first_chars(s, *n)),
+        GroupingOptions::ByLastChars(n) => Box::new(move |s| grouped_collection.group_by_last_chars(s, *n)),
+        GroupingOptions::ByRegex(re) => Box::new(move |s| grouped_collection.group_by_regex(s, re))
     };
 
     // Process each line of input.
     let stdin = io::stdin();
-    if matches.is_present("split_on_whitespace") {
+    if options.input.split_on_whitespace == Flag::Set {
         // Split on whitespace and process every resulting token.
         for line in stdin.lock().lines() {
             let line = line.unwrap();
@@ -155,7 +233,7 @@ fn process_input(grouped_collection: &mut GroupedCollection<String, String>, mat
             }
         }
     } else {
-        // PRocess each line as a single token.
+        // Process each line as a single token.
         for line in stdin.lock().lines() {
             let line = line.unwrap();
             grouping_function(line.clone());
@@ -163,21 +241,18 @@ fn process_input(grouped_collection: &mut GroupedCollection<String, String>, mat
     }
 }
 
-fn output_results(grouped_collection: &GroupedCollection<String, String>, matches: &ArgMatches) {
+fn output_results(grouped_collection: &GroupedCollection<String, String>, options: &GroupByOptions) {
     // Determine what line separator the user wants.
-    let line_separator: &[u8] = if matches.is_present("print0") {
+    let line_separator: &[u8] = if options.output.null_separators == Flag::Set {
         b"\0"
-    } else if matches.is_present("printspace") {
+    } else if options.output.space_separators == Flag::Set {
         b" "
     } else {
         b"\n"
     };
 
-    // Determine what to print for output.
-    let only_output_group_names: bool = matches.is_present("only_output_group_names");
-
     // Generate the required outputs.
-    if let Some(cmd) = matches.value_of("run_command") {
+    if let Some(cmd) = &options.output.run_command {
         // Retrieve the current shell for later use (if needed).
         let shell = match std::env::var(SHELL_VAR) {
             Ok(shell) => shell,
@@ -191,7 +266,7 @@ fn output_results(grouped_collection: &GroupedCollection<String, String>, matche
         };
 
         for (key, values) in grouped_collection.iter() {
-            if !only_output_group_names {
+            if options.output.only_group_names == Flag::Unset {
                 print_group_header(key);
             }
 
@@ -209,7 +284,7 @@ fn output_results(grouped_collection: &GroupedCollection<String, String>, matche
                 .expect("Shell command failed.");
             {
                 let mut writer = BufWriter::new(child.stdin.as_mut().unwrap());
-                if only_output_group_names {
+                if options.output.only_group_names == Flag::Set {
                     writer.write_all(key.as_bytes()).unwrap();
                     writer.write_all(line_separator).unwrap();
                 } else {
@@ -225,7 +300,7 @@ fn output_results(grouped_collection: &GroupedCollection<String, String>, matche
     } else {
         // Default behavior: print to standard output.
         for (key, values) in grouped_collection.iter() {
-            if only_output_group_names {
+            if options.output.only_group_names == Flag::Set {
                 print!("{}{}", key, std::str::from_utf8(line_separator).unwrap());
             } else {
                 print_group_header(key);

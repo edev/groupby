@@ -226,11 +226,11 @@ fn output_results(grouped_collection: &GroupedCollection<String, String>, matche
         // Default behavior: print to standard output.
         for (key, values) in grouped_collection.iter() {
             if only_output_group_names {
-                println!("{}", key);
+                print!("{}{}", key, std::str::from_utf8(line_separator).unwrap());
             } else {
                 print_group_header(key);
                 for line in values.iter() {
-                    println!("{}", line);
+                    print!("{}{}", line, std::str::from_utf8(line_separator).unwrap());
                 }
             }
         }

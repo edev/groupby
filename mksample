@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+
+##
+# This script creates sample data for large test runs of groupby.
+#
+# It generates a stream of random characters in the ASCII alphabetical ("a" to "z" and "A" to "Z") range, with newlines
+# ("\n") randomly interspersed.
+#
+# It expects one argument, the number of of characters (including newlines) to generate. This may be specified in
+# exact terms, e.g. "128304" or with a number and a suffix of K, M, or G as shorthand for thousand, million, and
+# billion, respectively. The lowercase variants k, m, and g are also accepted. Only whole numbers are accepted; for
+# instance, 3.14M is not accepted but could instead be written as 3140K.
+#
+# It prints its results to standard output, so redirecting that to a file is strongly suggested!
+#
+# Examples:
+#
+# ./mksample 100000 > sample.txt            Generates a file of one hundred thousand characters.
+# ./mksample 100k   > sample.txt            Same as above.
+# ./mksample 2G     > sample.txt            Generates 2 gigabytes (2^30) of characters.
+
+if $*.length < 1
+  $stderr.puts "Missing required argument: number of characters to generate."
+  exit(1)
+end
+
+if $*.length > 1
+  $stderr.puts "Too many arguments. Expected exactly one argument: number of characters to generate."
+  exit(1)
+end
+
+# Parse the sole command-line argument. Store it as NUM_CHARS.
+arg = $*[0]
+NUM_CHARS =
+  case arg
+  when /^\d+$/
+    Integer(arg)
+  when /^\d+K/i
+    Integer(arg[0...-1]) * 1_000
+  when /^\d+M/i
+    Integer(arg[0...-1]) * 1_000_000
+  when /^\d+G/i
+    Integer(arg[0...-1]) * 1_000_000_000
+  end
+
+# The array to choose from.
+CHARS = ('a'..'z').to_a + ('A'..'Z').to_a + ["\n"]
+
+prng = Random.new
+MAX = CHARS.length
+(0..NUM_CHARS).each do |i|
+  print CHARS[prng.rand(MAX)]
+end

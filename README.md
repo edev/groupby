@@ -1,16 +1,16 @@
-# Groupby
+# GroupBy
 
 Group lines of input according to their contents.
 
 ## Description
 
-Groupby is a Linux terminal filter for grouping lines of input according to their contents. You can specify a portion of a line to examine, and `groupby` will group together any lines of input that have that portion of the line in common.
+GroupBy is a Linux terminal filter for grouping lines of input according to their contents. You can specify a portion of a line to examine, and `groupby` will group together any lines of input that have that portion of the line in common.
 
 ## Compiling
 
-Groupby is written in the Rust programming language and packaged with Cargo. You will need a recent version of Rust that supports the 2018 edition of the language. One easy way to obtain Rust on your Linux system is to follow the directions on [rustup.rs](rustup.rs).
+GroupBy is written in the Rust programming language and packaged with Cargo. You will need a recent version of Rust that supports the 2018 edition of the language. One easy way to obtain Rust on your Linux system is to follow the directions on [rustup.rs](rustup.rs).
 
-To compile Groupby, run:
+To compile GroupBy, run:
 
 ```
 cargo build --release
@@ -18,7 +18,7 @@ cargo build --release
 
 This will compile `groupby` into `target/release`. From there, you can copy it wherever you like, e.g. to `~/bin`. The examples below assume that `groupby` is installed somewhere in your `PATH`. (Because of the immature state of this project, no install scripts are provided.)
 
-If you prefer to run it in-place, you can replace `groupby` with `cargo run --release --` in any example below, as long as you are inside Groupby's directory structure.
+If you prefer to run it in-place, you can replace `groupby` with `cargo run --release --` in any example below, as long as you are inside GroupBy's directory structure.
 
 ## Getting help
 
@@ -99,7 +99,7 @@ $ find . -iname 'notes*.txt' | groupby -r '\d{4}'
 
 ## Example: passing groups to a filter chain
 
-Groupby's real power is its ability to pass each group to a command sequence. For instance, we can extend the grouping from the previous example to count the lines, words, and characters in each group:
+GroupBy's real power is its ability to pass each group to a command sequence. For instance, we can extend the grouping from the previous example to count the lines, words, and characters in each group:
 
 ```
 $ find . -iname 'notes*.txt' | groupby -r '\d{4}' --print0 -c "xargs -0 wc | tail -n 1"

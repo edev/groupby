@@ -22,21 +22,21 @@ fn main() {
 #[derive(PartialEq, Copy, Clone)]
 enum Flag {
     Set,
-    Unset
+    Unset,
 }
 
 // Note: optional arguments that take a value are Option types.
 
 // Input options.
 struct InputOptions {
-    split_on_whitespace: Flag
+    split_on_whitespace: Flag,
 }
 
 // Grouping options. These are mutually exclusive, and exactly one must be set.
 enum GroupingOptions {
     ByFirstChars(usize),
     ByLastChars(usize),
-    ByRegex(Regex)
+    ByRegex(Regex),
 }
 
 // Output options. None, any, or all may be set.
@@ -44,7 +44,7 @@ struct OutputOptions {
     null_separators: Flag,
     space_separators: Flag,
     only_group_names: Flag,
-    run_command: Option<String>
+    run_command: Option<String>,
 }
 
 // The options struct that holds all of these options.
@@ -52,7 +52,7 @@ struct OutputOptions {
 struct GroupByOptions {
     input: InputOptions,
     grouping: GroupingOptions,
-    output: OutputOptions
+    output: OutputOptions,
 }
 
 // Use clap to parse command-line arguments.
@@ -145,8 +145,8 @@ fn args<'a>() -> GroupByOptions {
         input: InputOptions {
             split_on_whitespace: match matches.is_present("InputSplitOnWhitespace") {
                 true => Flag::Set,
-                false => Flag::Unset
-            } 
+                false => Flag::Unset,
+            },
         },
         grouping: if let Some(n) = matches.value_of("GroupByFirstChars") {
             match n.parse::<usize>() {
@@ -178,26 +178,29 @@ fn args<'a>() -> GroupByOptions {
         output: OutputOptions {
             null_separators: match matches.is_present("OutputNullSeparators") {
                 true => Flag::Set,
-                false => Flag::Unset
+                false => Flag::Unset,
             },
             space_separators: match matches.is_present("OutputSpaceSeparators") {
                 true => Flag::Set,
-                false => Flag::Unset
+                false => Flag::Unset,
             },
             only_group_names: match matches.is_present("OutputOnlyGroupNames") {
                 true => Flag::Set,
-                false => Flag::Unset
+                false => Flag::Unset,
             },
             run_command: if let Some(cmd) = matches.value_of("OutputRunCommand") {
                 Some(cmd.to_string())
             } else {
                 None
-            }
-        }
+            },
+        },
     }
 }
 
-fn process_input(grouped_collection: &mut GroupedCollection<String, String>, options: &GroupByOptions) {
+fn process_input(
+    grouped_collection: &mut GroupedCollection<String, String>,
+    options: &GroupByOptions,
+) {
     // Process input.
 
     // Extract the grouping function to use so that we only perform this logic once
@@ -212,9 +215,13 @@ fn process_input(grouped_collection: &mut GroupedCollection<String, String>, opt
         //    moved into whichever closure we construct.
         // 3. We move re into the ByRegex closure, but it, too, is a reference, so we are not
         //    partially moving anything out of GroupByOptions.
-        GroupingOptions::ByFirstChars(n) => Box::new(move |s| grouped_collection.group_by_first_chars(s, *n)),
-        GroupingOptions::ByLastChars(n) => Box::new(move |s| grouped_collection.group_by_last_chars(s, *n)),
-        GroupingOptions::ByRegex(re) => Box::new(move |s| grouped_collection.group_by_regex(s, re))
+        GroupingOptions::ByFirstChars(n) => {
+            Box::new(move |s| grouped_collection.group_by_first_chars(s, *n))
+        }
+        GroupingOptions::ByLastChars(n) => {
+            Box::new(move |s| grouped_collection.group_by_last_chars(s, *n))
+        }
+        GroupingOptions::ByRegex(re) => Box::new(move |s| grouped_collection.group_by_regex(s, re)),
     };
 
     // Process each line of input.
@@ -241,7 +248,10 @@ fn process_input(grouped_collection: &mut GroupedCollection<String, String>, opt
     }
 }
 
-fn output_results(grouped_collection: &GroupedCollection<String, String>, options: &GroupByOptions) {
+fn output_results(
+    grouped_collection: &GroupedCollection<String, String>,
+    options: &GroupByOptions,
+) {
     // Determine what line separator the user wants.
     let line_separator = if options.output.null_separators == Flag::Set {
         "\0"

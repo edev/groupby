@@ -67,11 +67,49 @@ fn args<'a>() -> GroupByOptions {
              One and only one grouping option must be specified.",
         )
 
+        // Override help message, since clap can't show arguments grouped in this way.
+        .help("\
+GroupBy
+Author: Dylan Laufenberg
+
+Reads lines from standard input and groups them by common substrings.
+By default, prints the resulting groups to standard output.
+
+One and only one grouping option must be specified.
+
+USAGE:
+    groupby <OPTIONS>
+
+BASIC OPTIONS:
+    -h, --help          Prints help information and exits.
+    -V, --version       Prints version information and exits.
+    -w                  Group words instead of lines; that is, split input on whitespace.
+
+GROUPING OPTIONS:
+    -f <n>                   Group by equivalence on the first n characters.
+    -l <n>                   Group by equivalence on the last n characters.
+    -r, --regex <pattern>    Group by equivalence on the first match against the specified regex pattern. If capture
+                             groups are present, group by equivalence on the first capture group. If a line does not
+                             match, it is stored in the blank group, \"\".
+
+OUTPUT OPTIONS:
+
+    By default, GroupBy prints groups to standard output. Options in this section override this behavior.
+    While multiple options may be specified, the behavior of nonsensical combinations (like --print0 and --printspace)
+    is not defined.
+
+    --print0            When outputting lines, separate them with a null character rather than a newline.
+                        This option is meant for compatibility with xargs -0.
+    --matches           Instead of outputting lines, output the matched text that forms each group.
+    --printspace        When outputting lines, separate them with a space rather than a newline.
+    -c <cmd>            Execute command cmd for each group, passing the group via standard input, one match per line.
+"
+        )
+
         // Input arguments.
         .arg(
             Arg::with_name("InputSplitOnWhitespace")
                 .short("w")
-                .help("Group words instead of lines; that is, split input on whitespace.")
         )
 
         // Grouping arguments.
@@ -79,14 +117,12 @@ fn args<'a>() -> GroupByOptions {
             Arg::with_name("GroupByFirstChars")
                 .short("f")
                 .value_name("n")
-                .help("Group by equivalence on the first n characters.")
                 .takes_value(true),
         )
         .arg(
             Arg::with_name("GroupByLastChars")
                 .short("l")
                 .value_name("n")
-                .help("Group by equivalence on the last n characters.")
                 .takes_value(true),
         )
         .arg(
@@ -94,11 +130,6 @@ fn args<'a>() -> GroupByOptions {
                 .short("r")
                 .long("regex")
                 .value_name("pattern")
-                .help(
-                    "Group by equivalence on the first match against the specified regex pattern. \
-                     If capture groups are present, group by equivalence on the first capture \
-                     group. If a line does not match, it is stored in the blank group, \"\"."
-                 )
                 .takes_value(true)
         )
 
@@ -117,23 +148,19 @@ fn args<'a>() -> GroupByOptions {
         .arg(
             Arg::with_name("OutputNullSeparators")
                 .long("print0")
-                .help("When outputting lines, separate them with a null character rather than a newline. This option is meant for compatibility with xargs -0.")
         )
         .arg(
             Arg::with_name("OutputSpaceSeparators")
                 .long("printspace")
-                .help("When outputting lines, separate them with a space rather than a newline.")
         )
         .arg(
             Arg::with_name("OutputOnlyGroupNames")
                 .long("matches")
-                .help("Instead of outputting lines, output the matched text that forms each group.")
         )
         .arg(
             Arg::with_name("OutputRunCommand")
                 .short("c")
                 .value_name("cmd")
-                .help("Execute command cmd for each group, passing the group via standard input, one match per line.")
                 .takes_value(true),
         )
 

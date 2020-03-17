@@ -33,10 +33,10 @@ struct InputOptions {
 }
 
 // Grouping options. These are mutually exclusive, and exactly one must be set.
-enum GroupingOptions {
-    ByFirstChars(usize),
-    ByLastChars(usize),
-    ByRegex(Regex),
+enum GroupingSpecifier {
+    FirstChars(usize),
+    LastChars(usize),
+    Regex(Regex),
 }
 
 // Output options. None, any, or all may be set.
@@ -51,12 +51,13 @@ struct OutputOptions {
 // Note: for safety, users are strongly recommended to own such a struct immutably.
 struct GroupByOptions {
     input: InputOptions,
-    grouping: GroupingOptions,
+    grouping: GroupingSpecifier,
     output: OutputOptions,
 }
 
 // Use clap to parse command-line arguments.
-fn args<'a>() -> GroupByOptions {
+#[allow(clippy::match_bool)]
+fn args() -> GroupByOptions {
     let matches = App::new("Groupby")
         // Basic app info.
         .author(crate_authors!())
@@ -177,7 +178,7 @@ OUTPUT OPTIONS:
         },
         grouping: if let Some(n) = matches.value_of("GroupByFirstChars") {
             match n.parse::<usize>() {
-                Ok(n) => GroupingOptions::ByFirstChars(n),
+                Ok(n) => GroupingSpecifier::FirstChars(n),
                 Err(_) => {
                     eprintln!("Error: {} is not a whole number.", n);
                     std::process::exit(1);
@@ -185,7 +186,7 @@ OUTPUT OPTIONS:
             }
         } else if let Some(n) = matches.value_of("GroupByLastChars") {
             match n.parse::<usize>() {
-                Ok(n) => GroupingOptions::ByLastChars(n),
+                Ok(n) => GroupingSpecifier::LastChars(n),
                 Err(_) => {
                     eprintln!("Error: {} is not a whole number.", n);
                     std::process::exit(1);
@@ -193,7 +194,7 @@ OUTPUT OPTIONS:
             }
         } else if let Some(pattern) = matches.value_of("GroupByRegex") {
             match Regex::new(pattern) {
-                Ok(re) => GroupingOptions::ByRegex(re),
+                Ok(re) => GroupingSpecifier::Regex(re),
                 Err(e) => {
                     eprintln!("{}", e); // The provided messages are actually really good.
                     std::process::exit(1);
@@ -242,13 +243,13 @@ fn process_input(
         //    moved into whichever closure we construct.
         // 3. We move re into the ByRegex closure, but it, too, is a reference, so we are not
         //    partially moving anything out of GroupByOptions.
-        GroupingOptions::ByFirstChars(n) => {
+        GroupingSpecifier::FirstChars(n) => {
             Box::new(move |s| grouped_collection.group_by_first_chars(s, *n))
         }
-        GroupingOptions::ByLastChars(n) => {
+        GroupingSpecifier::LastChars(n) => {
             Box::new(move |s| grouped_collection.group_by_last_chars(s, *n))
         }
-        GroupingOptions::ByRegex(re) => Box::new(move |s| grouped_collection.group_by_regex(s, re)),
+        GroupingSpecifier::Regex(re) => Box::new(move |s| grouped_collection.group_by_regex(s, re)),
     };
 
     // Process each line of input.

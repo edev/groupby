@@ -99,11 +99,11 @@ OUTPUT OPTIONS:
     While multiple options may be specified, the behavior of nonsensical combinations (like --print0 and --printspace)
     is not defined.
 
+    -c <cmd>            Execute command cmd for each group, passing the group via standard input, one match per line.
+    --matches           Instead of outputting lines, output the matched text that forms each group.
     --print0            When outputting lines, separate them with a null character rather than a newline.
                         This option is meant for compatibility with xargs -0.
-    --matches           Instead of outputting lines, output the matched text that forms each group.
     --printspace        When outputting lines, separate them with a space rather than a newline.
-    -c <cmd>            Execute command cmd for each group, passing the group via standard input, one match per line.
 "
         )
 

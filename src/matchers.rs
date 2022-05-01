@@ -96,3 +96,8 @@ pub fn match_regex<'a, 'b>(line: &'a str, regex: &'b Regex) -> Option<&'a str> {
         None => None,
     }
 }
+
+// TODO Add matcher: first n words
+// TODO Add matcher: last n words
+// TODO Add matcher: file extension
+// TODO Add matcher: nth word

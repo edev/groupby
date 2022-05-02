@@ -18,18 +18,11 @@ fn main() {
 
 // Type definitions for handling command-line arguments.
 
-// An option that is either set or not set, i.e. a flag.
-#[derive(PartialEq, Copy, Clone)]
-enum Flag {
-    Set,
-    Unset,
-}
-
 // Note: optional arguments that take a value are Option types.
 
 // Input options.
 struct InputOptions {
-    split_on_whitespace: Flag,
+    split_on_whitespace: bool,
 }
 
 // Grouping options. These are mutually exclusive, and exactly one must be set.
@@ -41,9 +34,9 @@ enum GroupingSpecifier {
 
 // Output options. None, any, or all may be set.
 struct OutputOptions {
-    null_separators: Flag,
-    space_separators: Flag,
-    only_group_names: Flag,
+    null_separators: bool,
+    space_separators: bool,
+    only_group_names: bool,
     run_command: Option<String>,
 }
 
@@ -171,10 +164,7 @@ OUTPUT OPTIONS:
     // Now process the arguments and construct the object to return.
     GroupByOptions {
         input: InputOptions {
-            split_on_whitespace: match matches.is_present("InputSplitOnWhitespace") {
-                true => Flag::Set,
-                false => Flag::Unset,
-            },
+            split_on_whitespace: matches.is_present("InputSplitOnWhitespace")
         },
         grouping: if let Some(n) = matches.value_of("GroupByFirstChars") {
             match n.parse::<usize>() {
@@ -204,18 +194,9 @@ OUTPUT OPTIONS:
             panic!("No grouping option was specified, but the argument parser didn't catch the issue. Please report this!")
         },
         output: OutputOptions {
-            null_separators: match matches.is_present("OutputNullSeparators") {
-                true => Flag::Set,
-                false => Flag::Unset,
-            },
-            space_separators: match matches.is_present("OutputSpaceSeparators") {
-                true => Flag::Set,
-                false => Flag::Unset,
-            },
-            only_group_names: match matches.is_present("OutputOnlyGroupNames") {
-                true => Flag::Set,
-                false => Flag::Unset,
-            },
+            null_separators: matches.is_present("OutputNullSeparators"),
+            space_separators: matches.is_present("OutputSpaceSeparators"),
+            only_group_names: matches.is_present("OutputOnlyGroupNames"),
             run_command: if let Some(cmd) = matches.value_of("OutputRunCommand") {
                 Some(cmd.to_string())
             } else {
@@ -254,7 +235,7 @@ fn process_input(
 
     // Process each line of input.
     let stdin = io::stdin();
-    if options.input.split_on_whitespace == Flag::Set {
+    if options.input.split_on_whitespace {
         // Split on whitespace and process every resulting token.
         for line in stdin.lock().lines() {
             let line = line.unwrap();
@@ -281,9 +262,9 @@ fn output_results(
     options: &GroupByOptions,
 ) {
     // Determine what line separator the user wants.
-    let line_separator = if options.output.null_separators == Flag::Set {
+    let line_separator = if options.output.null_separators {
         "\0"
-    } else if options.output.space_separators == Flag::Set {
+    } else if options.output.space_separators {
         " "
     } else {
         "\n"
@@ -304,7 +285,7 @@ fn output_results(
         };
 
         for (key, values) in grouped_collection.iter() {
-            if options.output.only_group_names == Flag::Unset {
+            if !options.output.only_group_names {
                 print_group_header(key);
             }
 
@@ -322,7 +303,7 @@ fn output_results(
                 .expect("Shell command failed.");
             {
                 let mut writer = BufWriter::new(child.stdin.as_mut().unwrap());
-                if options.output.only_group_names == Flag::Set {
+                if options.output.only_group_names {
                     writer.write_all(key.as_bytes()).unwrap();
                     writer.write_all(line_separator.as_bytes()).unwrap();
                 } else {
@@ -338,7 +319,7 @@ fn output_results(
     } else {
         // Default behavior: print to standard output.
         for (key, values) in grouped_collection.iter() {
-            if options.output.only_group_names == Flag::Set {
+            if options.output.only_group_names {
                 print!("{}{}", key, line_separator);
             } else {
                 print_group_header(key);

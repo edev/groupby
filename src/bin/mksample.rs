@@ -2,12 +2,14 @@
 //! no command-line inputs; all customization is performed through the `main` function. Thus, to
 //! generate all necessary sample files for benchmarking, simply run this program once.
 
+use std::collections::VecDeque;
 use std::fs::File;
-use std::io::BufWriter;
 use std::io::prelude::*;
+use std::io::BufWriter;
 #[allow(unused_imports)]
 use std::iter;
 use std::ops::Range;
+use std::thread::{self, JoinHandle};
 
 /// Specifies the bounds for the lengths of lines in a sample file (excluding the newline character).
 pub enum LineLength {
@@ -25,6 +27,7 @@ pub enum SampleLength {
     Characters(usize),
 }
 
+/// Builds all preconfigured samples.
 fn main() {
     let cg = fastrand::alphanumeric;
 
@@ -32,27 +35,84 @@ fn main() {
 
     // Example builds....
 
-    build_sample(
-        &mut File::create("fixed-20char-30MB-alphanumeric.txt").unwrap(),
+    let mut builder = SampleBuilder::new();
+    builder.sample(
+        "fixed-20char-30MB-alphanumeric.txt",
         LineLength::Fixed(20),
         SampleLength::Characters(30_000_000),
-        &cg,
+        cg,
     );
 
-    build_sample(
-        &mut File::create("ranged-5to80char-30MB-alphanumeric.txt").unwrap(),
+    builder.sample(
+        "ranged-5to80char-30MB-alphanumeric.txt",
         LineLength::Range(5..81),
         SampleLength::Characters(30_000_000),
-        &cg,
+        cg,
     );
+}
+
+/// Wraps build_sample invocations in new threads for easy parallelism.
+//
+// Note that this struct is not unit-tested. It's simple, the type system does most of the work,
+// and testing it would require things like dependency injection to verify output to stdout and
+// stderr. It's not worth the effort for this particular struct, since it's not used in any
+// larger, production context where security issues could come into play, nor is it in a library.
+#[derive(Default)]
+pub struct SampleBuilder {
+    samples: VecDeque<Sample>,
+}
+
+/// Holds the file handle and filename for a sample that's being built.
+struct Sample {
+    handle: JoinHandle<()>,
+    filename: &'static str,
+}
+
+/// We implement Drop so we can automatically join all threads when the struct is dropped.
+impl Drop for SampleBuilder {
+    fn drop(&mut self) {
+        while let Some(sample) = self.samples.pop_front() {
+            match sample.handle.join() {
+                Ok(_) => println!("Created sample: {}", sample.filename),
+                Err(e) => eprintln!("{:?}", e),
+            }
+        }
+    }
+}
+
+impl SampleBuilder {
+    pub fn new() -> Self {
+        SampleBuilder {
+            samples: VecDeque::new(),
+        }
+    }
+
+    /// Builds a sample in a new thread.
+    pub fn sample(
+        &mut self,
+        filename: &'static str,
+        line_length: LineLength,
+        sample_length: SampleLength,
+        character_generator: fn() -> char,
+    ) {
+        let handle = thread::spawn(move || {
+            build_sample(
+                File::create(filename).unwrap(),
+                line_length,
+                sample_length,
+                character_generator,
+            )
+        });
+        self.samples.push_back(Sample { handle, filename });
+    }
 }
 
 /// Builds a sample based on the provided parameters and writes it to `file`.
 pub fn build_sample(
-    file: &mut impl Write,
+    file: impl Write,
     line_length: LineLength,
     sample_length: SampleLength,
-    character_generator: &impl Fn() -> char,
+    character_generator: impl Fn() -> char,
 ) {
     // Let's buffer our writer, since we'll make lots of small writes.
     let mut file = BufWriter::new(file);
@@ -60,8 +120,8 @@ pub fn build_sample(
     match sample_length {
         SampleLength::Lines(n) => {
             for _ in 0..n {
-                let line = build_line(&line_length, character_generator);
-                file.write(line.string.as_bytes()).unwrap();
+                let line = build_line(&line_length, &character_generator);
+                file.write_all(line.string.as_bytes()).unwrap();
             }
         }
         SampleLength::Characters(limit) => {
@@ -76,18 +136,18 @@ pub fn build_sample(
 
             // Be careful not to subtract from limit here or you'll get subtract with overflow.
             while chars_written + max_line_length < limit {
-                let line = build_line(&line_length, character_generator);
+                let line = build_line(&line_length, &character_generator);
                 chars_written += line.length;
-                file.write(line.string.as_bytes()).unwrap();
+                file.write_all(line.string.as_bytes()).unwrap();
             }
 
             // Write the last line.
             if chars_written < limit {
                 let line = build_line(
                     &LineLength::Fixed(limit - chars_written - 1),
-                    character_generator,
+                    &character_generator,
                 );
-                file.write(line.string.as_bytes()).unwrap();
+                file.write_all(line.string.as_bytes()).unwrap();
             }
         }
     }
@@ -99,10 +159,10 @@ pub fn build_sample(
 /// Returned from `build_line`.
 pub struct Line {
     /// A fully formed line (including newline).
-    string: String,
+    pub string: String,
 
     /// The length of the line in chars (including newline).
-    length: usize,
+    pub length: usize,
 }
 
 /// Builds a line based on the provided parameters.
@@ -293,7 +353,7 @@ mod build_sample_tests {
             &mut sample,
             LineLength::Fixed(line_length),
             SampleLength::Characters(char_count),
-            &cg
+            &cg,
         );
         assert_eq!(char_count, sample.len());
     }

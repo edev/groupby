@@ -1,3 +1,4 @@
+pub mod command_line;
 pub mod grouped_collection;
 pub mod groupers;
 pub mod matchers;

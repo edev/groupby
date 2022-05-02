@@ -1,5 +1,5 @@
 use clap::{crate_authors, crate_version, App, Arg, ArgGroup};
-use groupby::*;
+use groupby::{*, command_line::options::*};
 use regex::Regex;
 use std::io;
 use std::io::{BufRead, BufWriter, Write};
@@ -14,38 +14,6 @@ fn main() {
 
     process_input(&mut grouped_collection, &options);
     output_results(&grouped_collection, &options);
-}
-
-// Type definitions for handling command-line arguments.
-
-// Note: optional arguments that take a value are Option types.
-
-// Input options.
-struct InputOptions {
-    split_on_whitespace: bool,
-}
-
-// Grouping options. These are mutually exclusive, and exactly one must be set.
-enum GroupingSpecifier {
-    FirstChars(usize),
-    LastChars(usize),
-    Regex(Regex),
-}
-
-// Output options. None, any, or all may be set.
-struct OutputOptions {
-    null_separators: bool,
-    space_separators: bool,
-    only_group_names: bool,
-    run_command: Option<String>,
-}
-
-// The options struct that holds all of these options.
-// Note: for safety, users are strongly recommended to own such a struct immutably.
-struct GroupByOptions {
-    input: InputOptions,
-    grouping: GroupingSpecifier,
-    output: OutputOptions,
 }
 
 // Use clap to parse command-line arguments.

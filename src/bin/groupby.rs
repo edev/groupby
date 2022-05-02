@@ -16,6 +16,8 @@ fn main() {
     output_results(&grouped_collection, &options);
 }
 
+// TODO Improve help text formatting: clarify mutual exclusivity of -w/-0 and --print*.
+
 // Use clap to parse command-line arguments.
 #[allow(clippy::match_bool)]
 fn args() -> GroupByOptions {
@@ -45,7 +47,10 @@ USAGE:
 BASIC OPTIONS:
     -h, --help          Prints help information and exits.
     -V, --version       Prints version information and exits.
+
+INPUT OPTIONS:
     -w                  Group words instead of lines; that is, split input on whitespace.
+    -0                  Split input by null characters rather than lines.
 
 GROUPING OPTIONS:
     -f <n>                   Group by equivalence on the first n characters.
@@ -72,6 +77,10 @@ OUTPUT OPTIONS:
         .arg(
             Arg::with_name("InputSplitOnWhitespace")
                 .short("w")
+        )
+        .arg(
+            Arg::with_name("InputSplitOnNull")
+                .short("0")
         )
 
         // Grouping arguments.
@@ -132,7 +141,13 @@ OUTPUT OPTIONS:
     // Now process the arguments and construct the object to return.
     GroupByOptions {
         input: InputOptions {
-            split_on_whitespace: matches.is_present("InputSplitOnWhitespace")
+            separator: if matches.is_present("InputSplitOnWhitespace") {
+                Separator::Space
+            } else if matches.is_present("InputSplitOnNull") {
+                Separator::Null
+            } else {
+                Separator::Line
+            }
         },
         grouping: if let Some(n) = matches.value_of("GroupByFirstChars") {
             match n.parse::<usize>() {
@@ -162,8 +177,13 @@ OUTPUT OPTIONS:
             panic!("No grouping option was specified, but the argument parser didn't catch the issue. Please report this!")
         },
         output: OutputOptions {
-            null_separators: matches.is_present("OutputNullSeparators"),
-            space_separators: matches.is_present("OutputSpaceSeparators"),
+            separator: if matches.is_present("OutputNullSeparators") {
+                Separator::Null
+            } else if matches.is_present("OutputSpaceSeparators") {
+                Separator::Space
+            } else {
+                Separator::Line
+            },
             only_group_names: matches.is_present("OutputOnlyGroupNames"),
             run_command: if let Some(cmd) = matches.value_of("OutputRunCommand") {
                 Some(cmd.to_string())
@@ -203,24 +223,35 @@ fn process_input(
 
     // Process each line of input.
     let stdin = io::stdin();
-    if options.input.split_on_whitespace {
-        // Split on whitespace and process every resulting token.
-        for line in stdin.lock().lines() {
-            let line = line.unwrap();
-            for word in line.split(char::is_whitespace) {
-                // Skip whitespace; split will go character-by-character, so it will catch every
-                // other whitespace character, which we don't want.
-                if word.chars().all(|c| c.is_whitespace()) {
-                    continue;
-                }
-                grouping_function(word.to_string());
+    match options.input.separator {
+        Separator::Null => {
+            // Split on null characters and process every resulting token.
+            for result in stdin.lock().split(0) {
+                let token = result.unwrap();
+                let token = String::from_utf8(token).unwrap();
+                grouping_function(token);
             }
-        }
-    } else {
-        // Process each line as a single token.
-        for line in stdin.lock().lines() {
-            let line = line.unwrap();
-            grouping_function(line.clone());
+        },
+        Separator::Space => {
+            // Split on whitespace and process every resulting token.
+            for line in stdin.lock().lines() {
+                let line = line.unwrap();
+                for word in line.split(char::is_whitespace) {
+                    // Skip whitespace; split will go character-by-character, so it will catch every
+                    // other whitespace character, which we don't want.
+                    if word.chars().all(|c| c.is_whitespace()) {
+                        continue;
+                    }
+                    grouping_function(word.to_string());
+                }
+            }
+        },
+        Separator::Line => {
+            // Process each line as a single token.
+            for line in stdin.lock().lines() {
+                let line = line.unwrap();
+                grouping_function(line.clone());
+            }
         }
     }
 }
@@ -230,12 +261,10 @@ fn output_results(
     options: &GroupByOptions,
 ) {
     // Determine what line separator the user wants.
-    let line_separator = if options.output.null_separators {
-        "\0"
-    } else if options.output.space_separators {
-        " "
-    } else {
-        "\n"
+    let line_separator = match options.output.separator {
+        Separator::Null => "\0",
+        Separator::Space => " ",
+        Separator::Line => "\n",
     };
 
     // Generate the required outputs.

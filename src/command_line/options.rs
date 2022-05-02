@@ -10,11 +10,26 @@ use regex::Regex;
 
 // TODO Derive Copy, Clone. Others?
 
+/// Specifies what character to use as a separator between records/tokens.
+///
+/// This may be used in multiple contexts, e.g. parsing inputs and printing results.
+pub enum Separator {
+    /// Use a newline character (`\n`) as a separator.
+    Line,
+
+    /// Use a space (` `) as a separator.
+    Space,
+
+    /// Use a null separator (`\0`).
+    Null,
+
+    // TODO Consider adding Custom(String)
+}
+
 /// Options for handling program input.
 pub struct InputOptions {
-    /// If `true`, split the input on whitespace rather than on line breaks. In other
-    /// words, group words (including surrounding punctuation, etc.) instead of lines.
-    pub split_on_whitespace: bool,
+    /// Specifies what type of separator to look for when parsing records.
+    pub separator: Separator,
 }
 
 /// Specifies the user's chosen grouper.
@@ -30,14 +45,9 @@ pub enum GroupingSpecifier {
 }
 
 /// Options for controlling the program's output.
-// TODO Make a separators enum to specify line, null, or space. Do the same for input.
 pub struct OutputOptions {
-    /// Output a null character (`\0`) rather than a newline (`\n`) to separate entries.
-    /// This is intended for use with `xargs -0`.
-    pub null_separators: bool,
-
-    /// Output a space character (` `) rather than a newline (`\n`) to separate entries.
-    pub space_separators: bool,
+    /// Specifies what type of separator to output between records.
+    pub separator: Separator,
 
     /// Output only group names; do not group contents.
     pub only_group_names: bool,

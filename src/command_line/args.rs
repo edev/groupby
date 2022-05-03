@@ -52,6 +52,9 @@ pub fn command(command: Cmd) -> Cmd {
 //     )
 // }
 //
+// Note: to the best of my knowledge, we can't move the function definition into the macro body and
+// still have Cargo generate documentation for the function. Therefore, we'll keep that bit of
+// boilerplate, unfortunately.
 macro_rules! build {
     ( $self:ident, $method:ident, $($arg:expr),* ) => {
         CommandBuilder {

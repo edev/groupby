@@ -55,7 +55,7 @@ pub fn command(command: Cmd) -> Cmd {
 macro_rules! build {
     ( $self:ident, $method:ident, $($arg:expr),* ) => {
         CommandBuilder {
-            command: $self.command.$method($($arg)*),
+            command: $self.command.$method($($arg),*),
         }
     }
 }

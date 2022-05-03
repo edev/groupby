@@ -297,3 +297,121 @@ impl CommandBuilder {
         )
     }
 }
+
+/// To hopefully balance simplicity with correctness, since this is heavily hand-crafted by design,
+/// we'll test this whole module by simply comparing the output of [args()] to the expected output.
+/// If clap proves unstable across versions, then we can use a more advanced approach (such as
+/// being more flexible about whitespace). For now, this seems to strike a good balance between
+/// simplicity and thorough checks. There's really no use spending the time writing unit tests for
+/// every single method in this module, and doing so would be onerous.
+#[cfg(test)]
+mod args_tests {
+    use super::*;
+
+    #[test]
+    fn short_help_works() {
+        let mut command = args();
+        let mut buffer: Vec<u8> = vec![];
+        command.write_help(&mut buffer).unwrap();
+        assert_eq!(
+            String::from_utf8(buffer).unwrap(),
+            format!(
+                "\
+groupby {}
+Dylan Laufenberg <dylan.laufenberg@gmail.com>
+
+Reads lines from standard input and groups them by common substrings. By default, prints the
+resulting groups to standard output.
+
+USAGE:
+    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>>
+
+OPTIONS:
+    -h, --help       Print help information
+    -V, --version    Print version information
+
+INPUT-SPLITTING OPTIONS (choose zero or one):
+    -0        Split input by null characters rather than lines.
+    -w        Group words instead of lines; that is, split input on whitespace.
+
+GROUPERS (choose exactly one):
+    -f <n>                   Group by equivalence on the first n characters.
+    -l <n>                   Group by equivalence on the last n characters.
+    -r, --regex <pattern>    Group by equivalence on the first match against the specified pattern.
+
+OUTPUT SEPARATOR OPTIONS (choose zero or one):
+        --print0        When outputting lines, separate them with a null character, not a newline.
+        --printspace    When outputting lines, separate them with a space rather than a newline.
+
+GENERAL OUTPUT OPTIONS:
+    -c <cmd>         Execute command cmd for each group, passing the group via standard input.
+        --matches    Instead of outputting lines, output the matched text that forms each group.\n",
+                env!("CARGO_PKG_VERSION")
+            )
+        );
+    }
+
+    #[test]
+    fn long_help_works() {
+        let mut command = args();
+        let mut buffer: Vec<u8> = vec![];
+        command.write_long_help(&mut buffer).unwrap();
+        assert_eq!(
+            String::from_utf8(buffer).unwrap(),
+            format!(
+                "\
+groupby {}
+Dylan Laufenberg <dylan.laufenberg@gmail.com>
+
+Reads lines from standard input and groups them by common substrings. By default, prints the
+resulting groups to standard output.
+
+USAGE:
+    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>>
+
+OPTIONS:
+    -h, --help
+            Print help information
+
+    -V, --version
+            Print version information
+
+INPUT-SPLITTING OPTIONS (choose zero or one):
+    -0
+            Split input by null characters rather than lines.
+
+    -w
+            Group words instead of lines; that is, split input on whitespace.
+
+GROUPERS (choose exactly one):
+    -f <n>
+            Group by equivalence on the first n characters.
+
+    -l <n>
+            Group by equivalence on the last n characters.
+
+    -r, --regex <pattern>
+            Group by equivalence on the first match against the specified regex pattern. If capture
+            groups are present, group by equivalence on the first capture group. If a line does not
+            match, it is stored in the blank group, \"\".
+
+OUTPUT SEPARATOR OPTIONS (choose zero or one):
+        --print0
+            When outputting lines, separate them with a null character rather than a newline. This
+            option is meant for compatibility with xargs -0.
+
+        --printspace
+            When outputting lines, separate them with a space rather than a newline.
+
+GENERAL OUTPUT OPTIONS:
+    -c <cmd>
+            Execute command cmd for each group, passing the group via standard input, one match per
+            line.
+
+        --matches
+            Instead of outputting lines, output the matched text that forms each group.\n",
+                env!("CARGO_PKG_VERSION")
+            )
+        );
+    }
+}

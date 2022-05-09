@@ -1,5 +1,4 @@
 use std::cmp::Eq;
-use std::collections::{btree_map, hash_map, BTreeMap, HashMap};
 use std::hash::Hash;
 
 // TODO Diagnose & hopefully fix issue lifetime issue on Box<GroupedCollection>.iter().
@@ -23,7 +22,7 @@ use std::hash::Hash;
 // The example below works perfectly if I use a HashMap variable instead of a trait object. I don't
 // know what causes this issue or why. It's not a problem with my code as far as I can tell.
 // ```
-// # use groupby::grouped_collection::GroupedCollection;
+// # use groupby::grouped_collections::GroupedCollection;
 // # use std::collections::{hash_map, HashMap};
 // let map: &mut dyn GroupedCollection<
 //     bool,
@@ -52,7 +51,7 @@ use std::hash::Hash;
 /// # Examples
 ///
 /// ```
-/// use groupby::grouped_collection::GroupedCollection;
+/// use groupby::grouped_collections::GroupedCollection;
 /// use std::collections::{HashMap, BTreeMap};
 ///
 /// fn foo<Map>(mut map: Map)
@@ -105,7 +104,7 @@ pub trait GroupedCollection<'s, Key: 's, Value: 's, List: 's> {
     /// to use for details.
     ///
     /// ```
-    /// # use groupby::grouped_collection::GroupedCollection;
+    /// # use groupby::grouped_collections::GroupedCollection;
     /// # use std::collections::{hash_map, HashMap};
     /// let map: &mut dyn GroupedCollection<bool, usize, Vec<usize>, Iter = hash_map::Iter<bool, Vec<usize>>> = &mut HashMap::new();
     /// map.add(true, 1);
@@ -123,7 +122,7 @@ pub trait GroupedCollection<'s, Key: 's, Value: 's, List: 's> {
     /// implementation you plan to use for details.
     ///
     /// ```
-    /// # use groupby::grouped_collection::GroupedCollection;
+    /// # use groupby::grouped_collections::GroupedCollection;
     /// # use std::collections::BTreeMap;
     /// let mut map: BTreeMap<bool, Vec<usize>> = BTreeMap::new();
     /// map.add(true, 1);
@@ -138,118 +137,11 @@ pub trait GroupedCollection<'s, Key: 's, Value: 's, List: 's> {
     // TODO Add more methods to form a more complete set of actions.
 }
 
-impl<'s, Key, Value> GroupedCollection<'s, Key, Value, Vec<Value>> for BTreeMap<Key, Vec<Value>>
-where
-    Self: 's,
-    Key: Ord,
-{
-    type Iter = btree_map::Iter<'s, Key, Vec<Value>>;
 
-    /// Adds `value` to the `Vec<Value>`  at `key` in insertion order.
-    ///
-    /// ```
-    /// # use groupby::grouped_collection::GroupedCollection;
-    /// # use std::collections::BTreeMap;
-    /// let mut map: BTreeMap<bool, Vec<usize>> = BTreeMap::new();
-    /// map.add(true, 1);
-    /// assert_eq!(map.get(&true).unwrap(), &vec![1]);
-    /// map.add(true, 2);
-    /// assert_eq!(map.get(&true).unwrap(), &vec![1, 2]);
-    /// ```
-    fn add(&mut self, key: Key, value: Value) {
-        match self.entry(key) {
-            btree_map::Entry::Occupied(mut vec) => {
-                vec.get_mut().push(value);
-            }
-            btree_map::Entry::Vacant(slot) => {
-                slot.insert(vec![value]);
-            }
-        }
-    }
-
-    /// Wraps [BTreeMap::get()](std::collections::BTreeMap::get()).
-    fn get(&'s self, key: &Key) -> Option<&'s Vec<Value>> {
-        Self::get(&self, key)
-    }
-
-    /// Wraps [BTreeMap::iter()](std::collections::BTreeMap::iter()).
-    ///
-    /// Iterates over key->group mappings in sort order by `key`. (Groups still preserve insertion
-    /// order on values.)
-    ///
-    /// ```
-    /// # use groupby::grouped_collection::GroupedCollection;
-    /// # use std::collections::BTreeMap;
-    /// let mut map: BTreeMap<usize, Vec<String>> = BTreeMap::new();
-    /// for value in ["hello", "there", "friend"] {
-    ///     map.add(value.len(), value.to_string());
-    /// }
-    /// assert_eq!(
-    ///     map.iter().collect::<Vec<_>>(),
-    ///     vec![
-    ///         (&5, &vec!["hello".to_string(), "there".to_string()]),
-    ///         (&6, &vec!["friend".to_string()]),
-    ///     ]
-    /// );
-    /// ```
-    fn iter(&'s self) -> Self::Iter {
-        Self::iter(&self)
-    }
-}
-
-impl<'s, Key, Value> GroupedCollection<'s, Key, Value, Vec<Value>> for HashMap<Key, Vec<Value>>
-where
-    Self: 's,
-    Key: Eq + Hash,
-{
-    type Iter = hash_map::Iter<'s, Key, Vec<Value>>;
-
-    /// Adds `value` to the `Vec<Value>`  at `key` in insertion order.
-    ///
-    /// ```
-    /// # use groupby::grouped_collection::GroupedCollection;
-    /// # use std::collections::HashMap;
-    /// let mut map: HashMap<bool, Vec<usize>> = HashMap::new();
-    /// map.add(true, 1);
-    /// assert_eq!(map.get(&true).unwrap(), &vec![1]);
-    /// map.add(true, 2);
-    /// assert_eq!(map.get(&true).unwrap(), &vec![1, 2]);
-    /// ```
-    fn add(&mut self, key: Key, value: Value) {
-        match self.entry(key) {
-            hash_map::Entry::Occupied(mut vec) => {
-                vec.get_mut().push(value);
-            }
-            hash_map::Entry::Vacant(slot) => {
-                slot.insert(vec![value]);
-            }
-        }
-    }
-
-    /// Wraps [HashMap::get()](std::collections::HashMap::get()).
-    ///
-    /// ```
-    /// # use groupby::grouped_collection::GroupedCollection;
-    /// # use std::collections::HashMap;
-    /// let mut map: HashMap<bool, Vec<usize>> = HashMap::new();
-    /// map.add(true, 1);
-    /// assert_eq!(GroupedCollection::get(&map, &true).unwrap(), &vec![1]);
-    /// ```
-    fn get(&'s self, key: &Key) -> Option<&'s Vec<Value>> {
-        Self::get(&self, key)
-    }
-
-    /// Wraps [HashMap::iter()](std::collections::HashMap::iter()).
-    ///
-    /// Iterates over key->group mappings in arbitrary order. (Groups still preserve insertion
-    /// order on values.)
-    fn iter(&'s self) -> Self::Iter {
-        Self::iter(&self)
-    }
-}
 
 #[cfg(test)]
 mod grouped_collection_tests {
+    use std::collections::{BTreeMap, HashMap};
     use super::*;
 
     #[derive(Clone, Debug, Eq, PartialEq)]

@@ -60,3 +60,13 @@ where
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::grouped_collections::test_helpers::*;
+    use std::collections::{BTreeMap};
+
+    #[test]
+    fn add_get_iter() {
+        verify_grouped_collection(BTreeMap::new());
+    }
+}

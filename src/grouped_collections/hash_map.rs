@@ -53,3 +53,13 @@ where
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::grouped_collections::test_helpers::*;
+    use std::collections::{HashMap};
+
+    #[test]
+    fn add_get_iter() {
+        verify_grouped_collection(HashMap::new());
+    }
+}

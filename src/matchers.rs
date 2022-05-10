@@ -8,23 +8,31 @@ use regex::Regex;
 /// # Examples
 ///
 /// ```
+/// use groupby::matchers;
+///
 /// let line = "Hello, world";
-/// assert_eq!("Hello", groupby::match_first_n_chars(line, 5));
+/// assert_eq!("Hello", matchers::match_first_n_chars(line, 5));
 /// ```
 ///
 /// ```
+/// use groupby::matchers;
+///
 /// let line = "Hi";
-/// assert_eq!("Hi", groupby::match_first_n_chars(line, 5));
+/// assert_eq!("Hi", matchers::match_first_n_chars(line, 5));
 /// ```
 ///
 /// ```
+/// use groupby::matchers;
+///
 /// let line = "";
-/// assert_eq!("", groupby::match_first_n_chars(line, 8));
+/// assert_eq!("", matchers::match_first_n_chars(line, 8));
 /// ```
 ///
 /// ```
+/// use groupby::matchers;
+///
 /// let line = "This is not a string.";
-/// assert_eq!("", groupby::match_first_n_chars(line, 0));
+/// assert_eq!("", matchers::match_first_n_chars(line, 0));
 /// ```
 pub fn match_first_n_chars(line: &str, n: usize) -> &str {
     if n > line.len() {
@@ -40,23 +48,31 @@ pub fn match_first_n_chars(line: &str, n: usize) -> &str {
 /// # Examples
 ///
 /// ```
+/// use groupby::matchers;
+///
 /// let line = "Hello, world";
-/// assert_eq!("world", groupby::match_last_n_chars(line, 5));
+/// assert_eq!("world", matchers::match_last_n_chars(line, 5));
 /// ```
 ///
 /// ```
+/// use groupby::matchers;
+///
 /// let line = "Hi";
-/// assert_eq!("Hi", groupby::match_last_n_chars(line, 5));
+/// assert_eq!("Hi", matchers::match_last_n_chars(line, 5));
 /// ```
 ///
 /// ```
+/// use groupby::matchers;
+///
 /// let line = "";
-/// assert_eq!("", groupby::match_last_n_chars(line, 8));
+/// assert_eq!("", matchers::match_last_n_chars(line, 8));
 /// ```
 ///
 /// ```
+/// use groupby::matchers;
+///
 /// let line = "This is not a string.";
-/// assert_eq!("", groupby::match_last_n_chars(line, 0));
+/// assert_eq!("", matchers::match_last_n_chars(line, 0));
 /// ```
 pub fn match_last_n_chars(line: &str, n: usize) -> &str {
     if n > line.len() {
@@ -74,15 +90,17 @@ pub fn match_last_n_chars(line: &str, n: usize) -> &str {
 /// # Examples
 ///
 /// ```
+/// use groupby::matchers;
+///
 /// let first_word = regex::Regex::new(r"\w+").unwrap();
 ///
 /// let second_word = regex::Regex::new(r"\w+\W+(\w+)").unwrap();
 ///
 /// let third_word = regex::Regex::new(r"(?:\w+\W+){2}(\w+)").unwrap();
 ///
-/// assert_eq!("Bishop", groupby::match_regex("Bishop takes queen", &first_word).unwrap());
-/// assert_eq!("takes",  groupby::match_regex("Bishop takes queen", &second_word).unwrap());
-/// assert_eq!("queen",  groupby::match_regex("Bishop takes queen", &third_word).unwrap());
+/// assert_eq!("Bishop", matchers::match_regex("Bishop takes queen", &first_word).unwrap());
+/// assert_eq!("takes",  matchers::match_regex("Bishop takes queen", &second_word).unwrap());
+/// assert_eq!("queen",  matchers::match_regex("Bishop takes queen", &third_word).unwrap());
 /// ```
 pub fn match_regex<'a, 'b>(line: &'a str, regex: &'b Regex) -> Option<&'a str> {
     match regex.captures(line) {

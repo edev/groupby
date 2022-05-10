@@ -1,5 +1,6 @@
 use groupby::command_line::*;
 use groupby::*;
+use std::collections::BTreeMap;
 use std::io;
 use std::io::{BufRead, BufWriter, Write};
 use std::process::{Command, Stdio};
@@ -9,15 +10,15 @@ const SHELL_VAR: &str = "SHELL";
 
 fn main() {
     let options = command_line::parse(command_line::args::args());
-    let mut grouped_collection = GroupedCollection::<String, String>::new();
-    process_input(&mut grouped_collection, &options);
-    output_results(&grouped_collection, &options);
+    let mut map = BTreeMap::<String, Vec<String>>::new();
+    process_input(&mut map, &options);
+    output_results(&map, &options);
 }
 
-fn process_input(
-    grouped_collection: &mut GroupedCollection<String, String>,
-    options: &GroupByOptions,
-) {
+fn process_input<Map>(map: &mut Map, options: &GroupByOptions)
+where
+    Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
+{
     // Process input.
 
     // Extract the grouping function to use so that we only perform this logic once
@@ -28,17 +29,13 @@ fn process_input(
         // Details:
         // 1. We need to use "move" closures to move the borrowed references n into the closure,
         //    or else they will go out of scope.
-        // 2. grouped_collection is intentionally a mutable reference specifically intended to be
-        //    moved into whichever closure we construct.
+        // 2. map is intentionally a mutable reference specifically intended to be moved into
+        //    whichever closure we construct.
         // 3. We move re into the ByRegex closure, but it, too, is a reference, so we are not
         //    partially moving anything out of GroupByOptions.
-        GroupingSpecifier::FirstChars(n) => {
-            Box::new(move |s| grouped_collection.group_by_first_chars(s, *n))
-        }
-        GroupingSpecifier::LastChars(n) => {
-            Box::new(move |s| grouped_collection.group_by_last_chars(s, *n))
-        }
-        GroupingSpecifier::Regex(re) => Box::new(move |s| grouped_collection.group_by_regex(s, re)),
+        GroupingSpecifier::FirstChars(n) => Box::new(move |s| map.group_by_first_chars(s, *n)),
+        GroupingSpecifier::LastChars(n) => Box::new(move |s| map.group_by_last_chars(s, *n)),
+        GroupingSpecifier::Regex(re) => Box::new(move |s| map.group_by_regex(s, re)),
     };
 
     // Process each line of input.
@@ -51,7 +48,7 @@ fn process_input(
                 let token = String::from_utf8(token).unwrap();
                 grouping_function(token);
             }
-        },
+        }
         Separator::Space => {
             // Split on whitespace and process every resulting token.
             for line in stdin.lock().lines() {
@@ -65,7 +62,7 @@ fn process_input(
                     grouping_function(word.to_string());
                 }
             }
-        },
+        }
         Separator::Line => {
             // Process each line as a single token.
             for line in stdin.lock().lines() {
@@ -76,10 +73,10 @@ fn process_input(
     }
 }
 
-fn output_results(
-    grouped_collection: &GroupedCollection<String, String>,
-    options: &GroupByOptions,
-) {
+fn output_results<Map>(map: &Map, options: &GroupByOptions)
+where
+    Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
+{
     // Determine what line separator the user wants.
     let line_separator = match options.output.separator {
         Separator::Null => "\0",
@@ -101,7 +98,7 @@ fn output_results(
             }
         };
 
-        for (key, values) in grouped_collection.iter() {
+        for (key, values) in map.iter() {
             if !options.output.only_group_names {
                 print_group_header(key);
             }
@@ -111,7 +108,7 @@ fn output_results(
             // responsible for parsing the command string, which might (very likely)
             // have pipes, etc. This also frees the user to use whatever shell they
             // might prefer and to use its features (at least in theory).
-            let shell_args = ["-c", &cmd];
+            let shell_args = ["-c", cmd];
             let mut child = Command::new(&shell)
                 .args(&shell_args)
                 .stdin(Stdio::piped())
@@ -135,7 +132,7 @@ fn output_results(
         }
     } else {
         // Default behavior: print to standard output.
-        for (key, values) in grouped_collection.iter() {
+        for (key, values) in map.iter() {
             if options.output.only_group_names {
                 print!("{}{}", key, line_separator);
             } else {

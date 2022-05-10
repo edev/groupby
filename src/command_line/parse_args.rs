@@ -1,4 +1,4 @@
-//! Parses args from [args](super::args) into [GroupByOptions](super::options::GroupByOptions).
+//! Parses args from [args](mod@super::args) into [GroupByOptions](super::options::GroupByOptions).
 
 use crate::command_line::options::*;
 use clap::{ArgMatches, Command};

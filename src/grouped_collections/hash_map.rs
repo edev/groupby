@@ -41,7 +41,7 @@ where
     /// assert_eq!(GroupedCollection::get(&map, &true).unwrap(), &vec![1]);
     /// ```
     fn get(&'s self, key: &Key) -> Option<&'s Vec<Value>> {
-        Self::get(&self, key)
+        Self::get(self, key)
     }
 
     /// Wraps [HashMap::iter()](std::collections::HashMap::iter()).
@@ -49,7 +49,7 @@ where
     /// Iterates over key->group mappings in arbitrary order. (Groups still preserve insertion
     /// order on values.)
     fn iter(&'s self) -> Self::Iter {
-        Self::iter(&self)
+        Self::iter(self)
     }
 }
 

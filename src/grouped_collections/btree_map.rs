@@ -32,7 +32,7 @@ where
 
     /// Wraps [BTreeMap::get()](std::collections::BTreeMap::get()).
     fn get(&'s self, key: &Key) -> Option<&'s Vec<Value>> {
-        Self::get(&self, key)
+        Self::get(self, key)
     }
 
     /// Wraps [BTreeMap::iter()](std::collections::BTreeMap::iter()).
@@ -56,7 +56,7 @@ where
     /// );
     /// ```
     fn iter(&'s self) -> Self::Iter {
-        Self::iter(&self)
+        Self::iter(self)
     }
 }
 

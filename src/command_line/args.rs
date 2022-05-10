@@ -142,7 +142,7 @@ impl CommandBuilder {
         build!(self, next_help_heading, "GROUPERS (choose exactly one)")
     }
 
-    /// Adds an option to specify the [crate::grouped_collection::GroupedCollection::group_by_first_chars] grouper.
+    /// Adds an option to specify the [crate::groupers::Groupers::group_by_first_chars] grouper.
     pub fn group_by_first_chars(self) -> Self {
         build!(
             self,
@@ -155,7 +155,7 @@ impl CommandBuilder {
         )
     }
 
-    /// Adds an option to specify the [crate::grouped_collection::GroupedCollection::group_by_last_chars] grouper.
+    /// Adds an option to specify the [crate::groupers::Groupers::group_by_last_chars] grouper.
     pub fn group_by_last_chars(self) -> Self {
         build!(
             self,
@@ -168,7 +168,7 @@ impl CommandBuilder {
         )
     }
 
-    /// Adds an option to specify the [crate::grouped_collection::GroupedCollection::group_by_regex] grouper.
+    /// Adds an option to specify the [crate::groupers::Groupers::group_by_regex] grouper.
     pub fn group_by_regex(self) -> Self {
         build!(
             self,

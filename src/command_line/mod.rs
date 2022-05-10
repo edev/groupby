@@ -1,4 +1,4 @@
-//! Provides a toolkit for building command-line applications based on this library.
+//! Toolkit for building command-line applications that use this library.
 
 pub mod args;
 pub mod options;

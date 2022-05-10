@@ -1,3 +1,5 @@
+//! Provides the [GroupedCollection] trait.
+
 // TODO Diagnose & hopefully fix issue lifetime issue on Box<GroupedCollection>.iter().
 //
 // The example below doesn't work, and I don't quite know why. I've done everything I can at

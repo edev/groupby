@@ -1,3 +1,5 @@
+#![doc(hidden)]
+
 use crate::grouped_collections::GroupedCollection;
 use std::collections::{hash_map, HashMap};
 use std::hash::Hash;

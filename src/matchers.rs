@@ -1,6 +1,6 @@
-use regex::Regex;
+//! Methods for assigning strings to equivalence classes, i.e. matching parts of strings.
 
-///! A collection of predefined string matchers for some common, universal use cases.
+use regex::Regex;
 
 /// Returns the first `n` characters of `line`, or all of `line` if `n > line.len()`.
 /// If `line == ""` or `n == 0`, returns `""`.

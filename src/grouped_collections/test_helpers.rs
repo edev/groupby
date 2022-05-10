@@ -23,12 +23,14 @@ pub fn verify_grouped_collection<Map>(mut map: Map)
 where
     Map: for<'a> GroupedCollection<'a, Foot, Animal, Vec<Animal>> + Clone,
 {
+    #[rustfmt::skip]
     let claw_pairs = [
         (Claw, Beaver),
         (Claw, Cat),
         (Claw, Beaver),
     ];
 
+    #[rustfmt::skip]
     let hoof_pairs = [
         (Hoof, Horse),
         (Hoof, Donkey),
@@ -96,4 +98,3 @@ where
     refmap.add(Claw, Beaver);
     boxmap.add(Claw, Beaver);
 }
-

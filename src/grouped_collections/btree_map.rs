@@ -62,8 +62,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::grouped_collections::test_helpers::*;
-    use std::collections::{BTreeMap};
 
     #[test]
     fn add_get_iter() {

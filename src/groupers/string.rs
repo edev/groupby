@@ -1,7 +1,7 @@
 //! A collection of helper methods for grouping [Strings](String) into a [GroupedCollection].
 
 use crate::grouped_collections::*;
-use crate::matchers::*;
+use crate::matchers::string::*;
 use regex::Regex;
 
 /// Provides helper methods for grouping strings into a [GroupedCollection].

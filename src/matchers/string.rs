@@ -1,5 +1,4 @@
-//! Methods for assigning strings to equivalence classes, i.e. matching parts of strings.
-
+//! Matchers for [String] values.
 use regex::Regex;
 
 /// Returns the first `n` characters of `line`, or all of `line` if `n > line.len()`.
@@ -8,31 +7,31 @@ use regex::Regex;
 /// # Examples
 ///
 /// ```
-/// use groupby::matchers;
+/// use groupby::matchers::string;
 ///
 /// let line = "Hello, world";
-/// assert_eq!("Hello", matchers::match_first_n_chars(line, 5));
+/// assert_eq!("Hello", string::match_first_n_chars(line, 5));
 /// ```
 ///
 /// ```
-/// use groupby::matchers;
+/// use groupby::matchers::string;
 ///
 /// let line = "Hi";
-/// assert_eq!("Hi", matchers::match_first_n_chars(line, 5));
+/// assert_eq!("Hi", string::match_first_n_chars(line, 5));
 /// ```
 ///
 /// ```
-/// use groupby::matchers;
+/// use groupby::matchers::string;
 ///
 /// let line = "";
-/// assert_eq!("", matchers::match_first_n_chars(line, 8));
+/// assert_eq!("", string::match_first_n_chars(line, 8));
 /// ```
 ///
 /// ```
-/// use groupby::matchers;
+/// use groupby::matchers::string;
 ///
 /// let line = "This is not a string.";
-/// assert_eq!("", matchers::match_first_n_chars(line, 0));
+/// assert_eq!("", string::match_first_n_chars(line, 0));
 /// ```
 pub fn match_first_n_chars(line: &str, n: usize) -> &str {
     if n > line.len() {
@@ -48,31 +47,31 @@ pub fn match_first_n_chars(line: &str, n: usize) -> &str {
 /// # Examples
 ///
 /// ```
-/// use groupby::matchers;
+/// use groupby::matchers::string;
 ///
 /// let line = "Hello, world";
-/// assert_eq!("world", matchers::match_last_n_chars(line, 5));
+/// assert_eq!("world", string::match_last_n_chars(line, 5));
 /// ```
 ///
 /// ```
-/// use groupby::matchers;
+/// use groupby::matchers::string;
 ///
 /// let line = "Hi";
-/// assert_eq!("Hi", matchers::match_last_n_chars(line, 5));
+/// assert_eq!("Hi", string::match_last_n_chars(line, 5));
 /// ```
 ///
 /// ```
-/// use groupby::matchers;
+/// use groupby::matchers::string;
 ///
 /// let line = "";
-/// assert_eq!("", matchers::match_last_n_chars(line, 8));
+/// assert_eq!("", string::match_last_n_chars(line, 8));
 /// ```
 ///
 /// ```
-/// use groupby::matchers;
+/// use groupby::matchers::string;
 ///
 /// let line = "This is not a string.";
-/// assert_eq!("", matchers::match_last_n_chars(line, 0));
+/// assert_eq!("", string::match_last_n_chars(line, 0));
 /// ```
 pub fn match_last_n_chars(line: &str, n: usize) -> &str {
     if n > line.len() {
@@ -90,7 +89,7 @@ pub fn match_last_n_chars(line: &str, n: usize) -> &str {
 /// # Examples
 ///
 /// ```
-/// use groupby::matchers;
+/// use groupby::matchers::string;
 ///
 /// let first_word = regex::Regex::new(r"\w+").unwrap();
 ///
@@ -98,9 +97,9 @@ pub fn match_last_n_chars(line: &str, n: usize) -> &str {
 ///
 /// let third_word = regex::Regex::new(r"(?:\w+\W+){2}(\w+)").unwrap();
 ///
-/// assert_eq!("Bishop", matchers::match_regex("Bishop takes queen", &first_word).unwrap());
-/// assert_eq!("takes",  matchers::match_regex("Bishop takes queen", &second_word).unwrap());
-/// assert_eq!("queen",  matchers::match_regex("Bishop takes queen", &third_word).unwrap());
+/// assert_eq!("Bishop", string::match_regex("Bishop takes queen", &first_word).unwrap());
+/// assert_eq!("takes",  string::match_regex("Bishop takes queen", &second_word).unwrap());
+/// assert_eq!("queen",  string::match_regex("Bishop takes queen", &third_word).unwrap());
 /// ```
 pub fn match_regex<'a, 'b>(line: &'a str, regex: &'b Regex) -> Option<&'a str> {
     match regex.captures(line) {

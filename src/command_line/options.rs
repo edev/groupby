@@ -40,7 +40,8 @@ pub enum GroupingSpecifier {
     /// Group by the last `usize` characters of each token.
     LastChars(usize),
 
-    /// Group by the provided regular expression. See [crate::matchers::match_regex] for details.
+    /// Group by the provided regular expression. See [crate::matchers::string::match_regex] for
+    /// details.
     Regex(Regex),
 }
 

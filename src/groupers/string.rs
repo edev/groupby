@@ -1,4 +1,4 @@
-//! A collection of helper methods for grouping strings into a [GroupedCollection].
+//! A collection of helper methods for grouping [Strings](String) into a [GroupedCollection].
 
 use crate::grouped_collections::*;
 use crate::matchers::*;
@@ -14,7 +14,7 @@ pub trait Groupers<List> {
     ///
     /// ```
     /// use groupby::grouped_collections::*;
-    /// use groupby::groupers::Groupers;
+    /// use groupby::groupers::string::Groupers;
     /// use std::collections::HashMap;
     ///
     /// let expected = vec!["kaledonia".to_string()];
@@ -31,7 +31,7 @@ pub trait Groupers<List> {
     ///
     /// ```
     /// use groupby::grouped_collections::*;
-    /// use groupby::groupers::Groupers;
+    /// use groupby::groupers::string::Groupers;
     /// use std::collections::BTreeMap;
     ///
     /// let expected = vec!["Sally".to_string()];
@@ -50,7 +50,7 @@ pub trait Groupers<List> {
     ///
     /// ```
     /// use groupby::grouped_collections::*;
-    /// use groupby::groupers::Groupers;
+    /// use groupby::groupers::string::Groupers;
     /// use regex::Regex;
     /// use std::collections::HashMap;
     ///

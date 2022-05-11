@@ -1,6 +1,6 @@
 use groupby::command_line::{self, options::*};
 use groupby::grouped_collections::GroupedCollection;
-use groupby::groupers::Groupers;
+use groupby::groupers::string::*;
 use std::collections::BTreeMap;
 use std::io;
 use std::io::{BufRead, BufWriter, Write};

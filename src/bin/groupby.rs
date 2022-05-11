@@ -109,6 +109,8 @@ where
             // responsible for parsing the command string, which might (very likely)
             // have pipes, etc. This also frees the user to use whatever shell they
             // might prefer and to use its features (at least in theory).
+            //
+            // TODO Add a command-line option to specify the exact shell invocation.
             let shell_args = ["-c", cmd];
             let mut child = Command::new(&shell)
                 .args(&shell_args)

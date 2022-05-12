@@ -151,8 +151,8 @@ mod tests {
             type Iter = FakeMapIter<'s>;
 
             // Record the key so we can check which grouper was used.
-            fn add(&mut self, key: String, _value: String) {
-                self.calls.push(key);
+            fn add(&mut self, key: String, value: String) {
+                self.calls.push(format!("{}:{}", key, value));
             }
 
             fn get(&'s self, _key: &String) -> Option<&'s Vec<String>> {
@@ -195,7 +195,7 @@ mod tests {
             let mut runner = Runner::new(&mut map, &spec);
             runner.run(value.to_string());
             drop(runner);
-            assert_eq!(map.calls, vec![expected_key.to_string()]);
+            assert_eq!(map.calls, vec![format!("{}:{}", expected_key, value)]);
         }
 
         #[test]

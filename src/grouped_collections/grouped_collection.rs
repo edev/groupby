@@ -85,12 +85,13 @@
 /// still fairly new to Rust and find these lifetime issues quite perplexing, so it's entirely
 /// possible that a more experienced Rustacean might have an elegant solution! If you're interested
 /// in attempting it, you may be want to read two StackOverflow questions I asked while designing
-/// this trait
-/// ([one](https://stackoverflow.com/questions/72114666/lifetime-mismatch-in-generic-trait-with-iterator-bound),
-/// [two](https://stackoverflow.com/questions/72133462/lifetime-issue-with-generic-trait-bound)).
-/// I spent around a week learning all I could about advanced lifetimes, trying to understand the
-/// complexities of the situation, and trying to find the correct solution; what's here is the best
-/// I've been able to do. Help from a more experienced Rustacean is very welcome!
+/// this trait ([one], [two]). I spent around a week learning all I could about advanced lifetimes,
+/// trying to understand the complexities of the situation, and trying to find the correct
+/// solution; what's here is the best I've been able to do. Help from a more experienced Rustacean
+/// is very welcome!
+///
+/// [one]: https://stackoverflow.com/questions/72114666/lifetime-mismatch-in-generic-trait-with-iterator-bound
+/// [two]: https://stackoverflow.com/questions/72133462/lifetime-issue-with-generic-trait-bound
 pub trait GroupedCollection<'s, Key: 's, Value: 's, List: 's> {
     /// The type of iterator that [iter](GroupedCollection::iter) returns.
     type Iter: Iterator<Item = (&'s Key, &'s List)>;

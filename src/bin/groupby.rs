@@ -42,7 +42,7 @@ where
                 for word in line.split(char::is_whitespace) {
                     // Skip reapted whitespace; split will go character-by-character, so it will
                     // return every second whitespace character in a sequence, which we don't want.
-                    if word.chars().all(|c| c.is_whitespace()) {
+                    if word.chars().all(char::is_whitespace) {
                         continue;
                     }
                     runner.run(word.to_string());

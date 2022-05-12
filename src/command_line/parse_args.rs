@@ -6,6 +6,7 @@ use num::Num;
 use regex::{self, Regex};
 use std::str::FromStr;
 
+// A testable function that holds the main logic of parse().
 fn parse_from<M>(command: Command<'static>, matcher: M) -> GroupByOptions
 where
     M: FnOnce(Command<'static>) -> ArgMatches,
@@ -77,6 +78,7 @@ where
 
 /// Converts a clap::Command into a [GroupByOptions].
 pub fn parse(command: Command<'static>) -> GroupByOptions {
+    // parse() wraps parse_from() so we can use dependency injection for testing.
     parse_from(command, |c| c.get_matches())
 }
 

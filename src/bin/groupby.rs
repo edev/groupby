@@ -1,9 +1,8 @@
-use groupby::command_line::{self, options::*};
+use groupby::command_line::{self, options::*, process_input::*};
 use groupby::grouped_collections::GroupedCollection;
-use groupby::groupers::string::*;
 use std::collections::BTreeMap;
 use std::io;
-use std::io::{BufRead, BufWriter, Write};
+use std::io::{BufWriter, Write};
 use std::process::{Command, Stdio};
 
 // The environment variable that stores the name of the current shell.
@@ -16,48 +15,6 @@ fn main() {
     let locked_stdin = stdin.lock();
     process_input(locked_stdin, &mut map, &options);
     output_results(&map, &options);
-}
-
-fn process_input<I, Map>(input: I, map: &mut Map, options: &GroupByOptions)
-where
-    I: BufRead,
-    Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
-{
-    let mut runner = Runner::new(map, &options.grouping);
-    match options.input.separator {
-        Separator::Null => {
-            // Split on null characters and process every resulting token.
-            // Note: UTF-8 is designed so the only code point with a null byte is NUL itself,
-            // so we won't split a UTF-8 code point by splitting our byte stream before parsing
-            // to a String value.
-            for result in input.split(0) {
-                let token = result.unwrap();
-                let token = String::from_utf8(token).unwrap();
-                runner.run(token);
-            }
-        }
-        Separator::Space => {
-            // Split on whitespace and process every resulting token.
-            for line in input.lines() {
-                let line = line.unwrap();
-                for word in line.split(char::is_whitespace) {
-                    // Skip reapted whitespace; split will go character-by-character, so it will
-                    // return every second whitespace character in a sequence, which we don't want.
-                    if word.chars().all(char::is_whitespace) {
-                        continue;
-                    }
-                    runner.run(word.to_string());
-                }
-            }
-        }
-        Separator::Line => {
-            // Process each line as a single token.
-            for line in input.lines() {
-                let line = line.unwrap();
-                runner.run(line.clone());
-            }
-        }
-    }
 }
 
 fn output_results<Map>(map: &Map, options: &GroupByOptions)

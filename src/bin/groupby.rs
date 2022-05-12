@@ -12,24 +12,25 @@ const SHELL_VAR: &str = "SHELL";
 fn main() {
     let options = command_line::parse(command_line::args::args());
     let mut map = BTreeMap::<String, Vec<String>>::new();
-    process_input(&mut map, &options);
+    let stdin = io::stdin();
+    let locked_stdin = stdin.lock();
+    process_input(locked_stdin, &mut map, &options);
     output_results(&map, &options);
 }
 
-fn process_input<Map>(map: &mut Map, options: &GroupByOptions)
+fn process_input<I, Map>(input: I, map: &mut Map, options: &GroupByOptions)
 where
+    I: BufRead,
     Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
 {
     let mut runner = Runner::new(map, &options.grouping);
-    let stdin = io::stdin();
-    let stdin = stdin.lock();
     match options.input.separator {
         Separator::Null => {
             // Split on null characters and process every resulting token.
             // Note: UTF-8 is designed so the only code point with a null byte is NUL itself,
             // so we won't split a UTF-8 code point by splitting our byte stream before parsing
             // to a String value.
-            for result in stdin.split(0) {
+            for result in input.split(0) {
                 let token = result.unwrap();
                 let token = String::from_utf8(token).unwrap();
                 runner.run(token);
@@ -37,7 +38,7 @@ where
         }
         Separator::Space => {
             // Split on whitespace and process every resulting token.
-            for line in stdin.lines() {
+            for line in input.lines() {
                 let line = line.unwrap();
                 for word in line.split(char::is_whitespace) {
                     // Skip reapted whitespace; split will go character-by-character, so it will
@@ -51,7 +52,7 @@ where
         }
         Separator::Line => {
             // Process each line as a single token.
-            for line in stdin.lines() {
+            for line in input.lines() {
                 let line = line.unwrap();
                 runner.run(line.clone());
             }

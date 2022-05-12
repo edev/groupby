@@ -1,5 +1,6 @@
 //! A collection of helper methods for grouping [Strings](String) into a [GroupedCollection].
 
+use crate::command_line::options::GroupingSpecifier;
 use crate::grouped_collections::*;
 use crate::matchers::string::*;
 use regex::Regex;
@@ -82,5 +83,138 @@ where
     fn group_by_regex(&mut self, line: String, regex: &Regex) {
         let key = match_regex(&line, regex).unwrap_or("").to_string();
         self.add(key, line);
+    }
+}
+
+/// Provides a uniform interface to all string groupers.
+///
+/// Providing a uniform interface to all string groupers reduces the complexity of calling code
+/// that might need to invoke the groupers at different times or under different conditions.
+/// Specifically, It reduces the complexity of running a particular grouper based on a
+/// [crate::command_line::options::GroupingSpecifier] from a match statement to simply
+/// `runner.run(value)`.
+///
+/// # Examples
+///
+/// ```
+/// use groupby::command_line::options::GroupingSpecifier;
+/// use groupby::grouped_collections;
+/// use groupby::groupers::string::Runner;
+/// use std::collections::BTreeMap;
+///
+/// let mut map = BTreeMap::new();
+/// let spec = GroupingSpecifier::FirstChars(2);
+/// let mut runner = Runner::new(&mut map, &spec);
+///
+/// runner.run("Hi there".to_string());
+/// drop(runner); // Runner stores &mut map and is meant for batch insertions
+///
+/// assert_eq!(map.get("Hi"), Some(&vec!["Hi there".to_string()]));
+/// ```
+pub struct Runner<'a> {
+    run: Box<dyn FnMut(String) + 'a>,
+}
+
+impl<'a> Runner<'a> {
+    pub fn new<Map>(map: &'a mut Map, spec: &'a GroupingSpecifier) -> Self
+    where
+        Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
+    {
+        let run: Box<dyn FnMut(String)> = match spec {
+            GroupingSpecifier::FirstChars(n) => Box::new(move |s| map.group_by_first_chars(s, *n)),
+            GroupingSpecifier::LastChars(n) => Box::new(move |s| map.group_by_last_chars(s, *n)),
+            GroupingSpecifier::Regex(re) => Box::new(move |s| map.group_by_regex(s, re)),
+        };
+        Runner { run }
+    }
+}
+
+impl<'a> Runner<'a> {
+    /// Syntactic sugar so you can write `runner.run(value)` instead of `(runner.run)(value)`.
+    pub fn run(&mut self, value: String) {
+        (self.run)(value);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    mod runner {
+        use super::super::*;
+        use crate::grouped_collections::GroupedCollection;
+
+        // A test double that records calls to GroupedCollection::add().
+        struct FakeMap {
+            calls: Vec<String>,
+        }
+
+        impl<'s> GroupedCollection<'s, String, String, Vec<String>> for FakeMap {
+            type Iter = FakeMapIter<'s>;
+
+            // Record the key so we can check which grouper was used.
+            fn add(&mut self, key: String, _value: String) {
+                self.calls.push(key);
+            }
+
+            fn get(&'s self, _key: &String) -> Option<&'s Vec<String>> {
+                None
+            }
+
+            fn iter(&'s self) -> Self::Iter {
+                FakeMapIter {
+                    _keys: "".to_string(),
+                    _values: vec![],
+                    _fake_ref: &4,
+                }
+            }
+        }
+
+        impl FakeMap {
+            fn new() -> Self {
+                FakeMap { calls: vec![] }
+            }
+        }
+
+        // Quickest thing that will work for both Iterator and GroupedCollection.
+        struct FakeMapIter<'s> {
+            // Fields will, in fact, be empty.
+            _keys: String,
+            _values: Vec<String>,
+            _fake_ref: &'s usize, // We have to use 's, and we need it for the impl.
+        }
+
+        impl<'s> Iterator for FakeMapIter<'s> {
+            type Item = (&'s String, &'s Vec<String>);
+            fn next(&mut self) -> Option<Self::Item> {
+                None
+            }
+        }
+
+        // Verifies that Runner actually uses a given GroupingSpecifier properly.
+        fn matches(spec: GroupingSpecifier, value: &str, expected_key: &str) {
+            let mut map = FakeMap::new();
+            let mut runner = Runner::new(&mut map, &spec);
+            runner.run(value.to_string());
+            drop(runner);
+            assert_eq!(map.calls, vec![expected_key.to_string()]);
+        }
+
+        #[test]
+        fn matches_first_chars() {
+            matches(GroupingSpecifier::FirstChars(1), "abc", "a");
+        }
+
+        #[test]
+        fn matches_last_chars() {
+            matches(GroupingSpecifier::LastChars(1), "abc", "c");
+        }
+
+        #[test]
+        fn matches_regex() {
+            matches(
+                GroupingSpecifier::Regex(Regex::new("b").unwrap()),
+                "abc",
+                "b",
+            );
+        }
     }
 }

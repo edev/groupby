@@ -8,11 +8,10 @@
 
 use regex::Regex;
 
-// TODO Derive Copy, Clone. Others?
-
 /// Specifies what character to use as a separator between records/tokens.
 ///
 /// This may be used in multiple contexts, e.g. parsing inputs and printing results.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Separator {
     /// Use a newline character (`\n`) as a separator.
     Line,
@@ -22,17 +21,18 @@ pub enum Separator {
 
     /// Use a null separator (`\0`).
     Null,
-
     // TODO Consider adding Custom(String)
 }
 
 /// Options for handling program input.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct InputOptions {
     /// Specifies what type of separator to look for when parsing records.
     pub separator: Separator,
 }
 
 /// Specifies the user's chosen grouper.
+#[derive(Clone, Debug)]
 pub enum GroupingSpecifier {
     /// Group by the first `usize` characters of each token.
     FirstChars(usize),
@@ -45,7 +45,11 @@ pub enum GroupingSpecifier {
     Regex(Regex),
 }
 
+// For ease of use implementing PartialEq below.
+use GroupingSpecifier::*;
+
 /// Options for controlling the program's output.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OutputOptions {
     /// Specifies what type of separator to output between records.
     pub separator: Separator,
@@ -66,8 +70,65 @@ pub struct OutputOptions {
 /// Each field in this struct is a category of options.
 ///
 /// Note: for safety, users are strongly recommended to own such a struct immutably.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GroupByOptions {
     pub input: InputOptions,
     pub grouping: GroupingSpecifier,
     pub output: OutputOptions,
 }
+
+/// We can't derive PartialEq and Eq for GroupingSpecifier because Regex is not PartialEq
+/// or Eq, so we manually implement them with the following definitions:
+///
+/// FirstChars(m) == FirstChars(n) iff m == n
+/// LastChars(m) == LastChars(n) iff m == n
+/// Regex(re1) == Regex(re2) iff re1.as_str() == re2.as_str()
+///
+/// # Examples
+///
+/// ```
+/// use groupby::command_line::options::GroupingSpecifier::*;
+/// use regex;
+///
+/// assert_eq!(FirstChars(7), FirstChars(7));
+/// assert_eq!(LastChars(8), LastChars(8));
+/// assert_eq!(
+///     Regex(regex::Regex::new("foo").unwrap()),
+///     Regex(regex::Regex::new("foo").unwrap())
+/// );
+///
+/// assert_ne!(FirstChars(7), FirstChars(8));
+/// assert_ne!(LastChars(8), LastChars(9));
+/// assert_ne!(
+///     Regex(regex::Regex::new("foo").unwrap()),
+///     Regex(regex::Regex::new("bar").unwrap())
+/// );
+///
+/// assert_ne!(FirstChars(7), Regex(regex::Regex::new("bar").unwrap()));
+/// assert_ne!(LastChars(8), FirstChars(8));
+/// assert_ne!(
+///     Regex(regex::Regex::new("foo").unwrap()),
+///     LastChars(9)
+/// );
+/// ```
+impl PartialEq for GroupingSpecifier {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            FirstChars(m) => match other {
+                FirstChars(n) => m == n,
+                _ => false,
+            },
+            LastChars(m) => match other {
+                LastChars(n) => m == n,
+                _ => false,
+            },
+            Regex(re1) => match other {
+                Regex(re2) => re1.as_str() == re2.as_str(),
+                _ => false,
+            },
+        }
+    }
+}
+
+/// GroupingSpecifier has a full equivalence relation.
+impl Eq for GroupingSpecifier {}

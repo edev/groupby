@@ -140,54 +140,7 @@ impl<'a> Runner<'a> {
 mod tests {
     mod runner {
         use super::super::*;
-        use crate::grouped_collections::GroupedCollection;
-
-        // A test double that records calls to GroupedCollection::add().
-        struct FakeMap {
-            calls: Vec<String>,
-        }
-
-        impl<'s> GroupedCollection<'s, String, String, Vec<String>> for FakeMap {
-            type Iter = FakeMapIter<'s>;
-
-            // Record the key so we can check which grouper was used.
-            fn add(&mut self, key: String, value: String) {
-                self.calls.push(format!("{}:{}", key, value));
-            }
-
-            fn get(&'s self, _key: &String) -> Option<&'s Vec<String>> {
-                None
-            }
-
-            fn iter(&'s self) -> Self::Iter {
-                FakeMapIter {
-                    _keys: "".to_string(),
-                    _values: vec![],
-                    _fake_ref: &4,
-                }
-            }
-        }
-
-        impl FakeMap {
-            fn new() -> Self {
-                FakeMap { calls: vec![] }
-            }
-        }
-
-        // Quickest thing that will work for both Iterator and GroupedCollection.
-        struct FakeMapIter<'s> {
-            // Fields will, in fact, be empty.
-            _keys: String,
-            _values: Vec<String>,
-            _fake_ref: &'s usize, // We have to use 's, and we need it for the impl.
-        }
-
-        impl<'s> Iterator for FakeMapIter<'s> {
-            type Item = (&'s String, &'s Vec<String>);
-            fn next(&mut self) -> Option<Self::Item> {
-                None
-            }
-        }
+        use crate::grouped_collections::fake_map::*;
 
         // Verifies that Runner actually uses a given GroupingSpecifier properly.
         fn matches(spec: GroupingSpecifier, value: &str, expected_key: &str) {
@@ -195,7 +148,7 @@ mod tests {
             let mut runner = Runner::new(&mut map, &spec);
             runner.run(value.to_string());
             drop(runner);
-            assert_eq!(map.calls, vec![format!("{}:{}", expected_key, value)]);
+            assert_eq!(*map.calls(), vec![format!("{}:{}", expected_key, value)]);
         }
 
         #[test]

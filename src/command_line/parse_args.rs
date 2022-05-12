@@ -3,13 +3,14 @@
 use crate::command_line::options::*;
 use clap::{ArgMatches, Command};
 use num::Num;
-use regex::Regex;
-use std::process;
+use regex::{self, Regex};
 use std::str::FromStr;
 
-/// Converts a clap::Command into a [GroupByOptions].
-pub fn parse(command: Command<'static>) -> GroupByOptions {
-    let matches = command.get_matches();
+fn parse_from<M>(command: Command<'static>, matcher: M) -> GroupByOptions
+where
+    M: FnOnce(Command<'static>) -> ArgMatches,
+{
+    let matches = matcher(command);
 
     // Note: clap knows to validate groupings, e.g. "exactly one" or "zero or one" of a given
     // group. The logic below does not need to check for this.
@@ -74,6 +75,11 @@ pub fn parse(command: Command<'static>) -> GroupByOptions {
     }
 }
 
+/// Converts a clap::Command into a [GroupByOptions].
+pub fn parse(command: Command<'static>) -> GroupByOptions {
+    parse_from(command, |c| c.get_matches())
+}
+
 // Parses a key with a numeric value; expects that the key is present and has a value.
 fn parse_numeric_value<T>(matches: &ArgMatches, key: &str) -> T
 where
@@ -83,20 +89,229 @@ where
     match s.parse() {
         Ok(n) => n,
         Err(_) => {
-            eprintln!("Expected a number, but got: {}", s);
-            process::exit(1);
+            panic!("Expected a number, but got: {}", s);
         }
     }
 }
 
-// Parses a regex value; expects taht the key is present and has a value.
+// Parses a regex value; expects that the key is present and has a value.
 fn parse_regex_value(matches: &ArgMatches, key: &str) -> Regex {
     let pattern = matches.value_of(key).unwrap();
-    match Regex::new(pattern) {
-        Ok(re) => re,
-        Err(e) => {
-            eprintln!("{}", e); // The provided messages are actually really good.
-            std::process::exit(1);
+    Regex::new(pattern).unwrap() // The provided messages are actually really good.
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::command_line::args::CommandBuilder;
+    use clap::command;
+    use std::fmt::Debug;
+
+    fn cb() -> CommandBuilder {
+        CommandBuilder::new(command!())
+    }
+
+    #[cfg(test)]
+    mod parse_from {
+        use super::*;
+        use crate::command_line::args;
+
+        fn parses<S, T>(args: &Vec<&'static str>, selector: S, expected: T)
+        where
+            S: FnOnce(GroupByOptions) -> T,
+            T: Eq + Debug,
+        {
+            let command = args::args();
+            let options =
+                crate::command_line::parse_args::parse_from(command, |c| c.get_matches_from(args));
+            let parsed_value: T = selector(options);
+            assert_eq!(expected, parsed_value);
+        }
+
+        #[test]
+        fn parses_input_split_on_whitespace() {
+            // Short
+            parses(
+                &vec!["app", "-w", "-f1"],
+                |gbo: GroupByOptions| gbo.input.separator,
+                Separator::Space,
+            );
+            // No long option
+        }
+
+        #[test]
+        fn parses_input_split_on_null() {
+            // Short
+            parses(
+                &vec!["app", "-0", "-f1"],
+                |gbo: GroupByOptions| gbo.input.separator,
+                Separator::Null,
+            );
+            // No long option
+        }
+
+        #[test]
+        fn parses_input_split_default() {
+            parses(
+                &vec!["app", "-f1"],
+                |gbo: GroupByOptions| gbo.input.separator,
+                Separator::Line,
+            );
+        }
+
+        #[test]
+        fn parses_group_by_first_chars() {
+            // Short
+            parses(
+                &vec!["app", "-w", "-f8"],
+                |gbo: GroupByOptions| gbo.grouping,
+                GroupingSpecifier::FirstChars(8),
+            );
+            // No long option
+        }
+
+        #[test]
+        fn parses_group_by_last_chars() {
+            // Short
+            parses(
+                &vec!["app", "-w", "-l9"],
+                |gbo: GroupByOptions| gbo.grouping,
+                GroupingSpecifier::LastChars(9),
+            );
+        }
+
+        #[test]
+        fn parses_group_by_regex() {
+            // Short
+            parses(
+                &vec!["app", "-w", "-r", "foo"],
+                |gbo: GroupByOptions| gbo.grouping,
+                GroupingSpecifier::Regex(Regex::new("foo").unwrap()),
+            );
+
+            // Long
+            parses(
+                &vec!["app", "-w", "--regex", "bar"],
+                |gbo: GroupByOptions| gbo.grouping,
+                GroupingSpecifier::Regex(Regex::new("bar").unwrap()),
+            );
+        }
+
+        #[test]
+        fn parses_output_null_separators() {
+            // No short option
+
+            // Long option
+            parses(
+                &vec!["app", "--print0", "-f1"],
+                |gbo: GroupByOptions| gbo.output.separator,
+                Separator::Null,
+            );
+        }
+
+        #[test]
+        fn parses_output_space_separators() {
+            // No short option
+
+            // Long
+            parses(
+                &vec!["app", "--printspace", "-f1"],
+                |gbo: GroupByOptions| gbo.output.separator,
+                Separator::Space,
+            );
+        }
+
+        #[test]
+        fn parses_output_default_separators() {
+            parses(
+                &vec!["app", "-f1"],
+                |gbo: GroupByOptions| gbo.output.separator,
+                Separator::Line,
+            );
+        }
+
+        #[test]
+        fn parses_output_only_group_names() {
+            // No short option
+
+            // Long
+            parses(
+                &vec!["app", "--matches", "-f1"],
+                |gbo: GroupByOptions| gbo.output.only_group_names,
+                true,
+            );
+
+            // When not specified
+            parses(
+                &vec!["app", "-f1"],
+                |gbo: GroupByOptions| gbo.output.only_group_names,
+                false,
+            );
+        }
+
+        #[test]
+        fn parses_output_run_command() {
+            // Short
+            parses(
+                &vec!["app", "-c", "tail | head", "-f1"],
+                |gbo: GroupByOptions| gbo.output.run_command,
+                Some("tail | head".to_string()),
+            );
+            // No long option
+
+            // When not specified
+            parses(
+                &vec!["app", "-f1"],
+                |gbo: GroupByOptions| gbo.output.run_command,
+                None,
+            );
+        }
+    }
+
+    #[cfg(test)]
+    mod parse_numeric_value {
+        use super::*;
+
+        #[test]
+        fn returns_number() {
+            let clap = cb().group_by_first_chars().command;
+            let args = vec!["appname", "-f", "4"];
+            let matches = clap.get_matches_from(args);
+            assert_eq!(4, parse_numeric_value(&matches, "group_by_first_chars"));
+        }
+
+        #[test]
+        #[should_panic]
+        fn panics_on_failed_parse() {
+            let clap = cb().group_by_first_chars().command;
+            let args = vec!["appname", "-f", "four"];
+            let matches = clap.get_matches_from(args);
+            parse_numeric_value::<usize>(&matches, "group_by_first_chars");
+        }
+    }
+
+    #[cfg(test)]
+    mod parse_regex_value {
+        use super::*;
+
+        #[test]
+        fn returns_matching_regex() {
+            let clap = CommandBuilder::new(command!()).group_by_regex().command;
+            let args = vec!["appname", "-r", "(foo)?bar"];
+            let matches = clap.get_matches_from(args);
+            let re = parse_regex_value(&matches, "group_by_regex");
+            assert!(re.is_match("bar"));
+            assert!(re.is_match("foobar"));
+            assert!(!re.is_match("soap"));
+        }
+
+        #[test]
+        #[should_panic(expected = "unclosed group")]
+        fn panics_on_invalid_regex() {
+            let clap = CommandBuilder::new(command!()).group_by_regex().command;
+            let invalid_args = vec!["appname", "-r", "(foo"];
+            let matches = clap.get_matches_from(invalid_args);
+            parse_regex_value(&matches, "group_by_regex"); // Should panic.
         }
     }
 }

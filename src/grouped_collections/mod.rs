@@ -6,8 +6,11 @@
 //! affecting calling code.
 
 pub mod btree_map;
+#[cfg(test)]
+pub mod fake_map;
 pub mod grouped_collection;
 pub mod hash_map;
+#[cfg(test)]
 mod test_helpers;
 
 pub use grouped_collection::GroupedCollection;

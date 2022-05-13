@@ -1,9 +1,8 @@
-use groupby::command_line::{self, options::*};
+use groupby::command_line::{self, options::*, process_input::*};
 use groupby::grouped_collections::GroupedCollection;
-use groupby::groupers::string::*;
 use std::collections::BTreeMap;
 use std::io;
-use std::io::{BufRead, BufWriter, Write};
+use std::io::{BufWriter, Write};
 use std::process::{Command, Stdio};
 
 // The environment variable that stores the name of the current shell.
@@ -12,66 +11,10 @@ const SHELL_VAR: &str = "SHELL";
 fn main() {
     let options = command_line::parse(command_line::args::args());
     let mut map = BTreeMap::<String, Vec<String>>::new();
-    process_input(&mut map, &options);
-    output_results(&map, &options);
-}
-
-fn process_input<Map>(map: &mut Map, options: &GroupByOptions)
-where
-    Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
-{
-    // Extract the grouping function to use so that we only perform this logic once
-    // rather than for each line.
-    let mut grouping_function: Box<dyn FnMut(String)> = match &options.grouping {
-        // Everything we move is a reference, so no meaningful ownership changes occur:
-        //
-        // 1. We need to use move closures to copy immutable references n and re into the
-        //    closure, or else they will go out of scope. Nothing is moved out of options.
-        //
-        // 2. map is intentionally a mutable reference specifically intended to be moved into
-        //    whichever closure we construct. We will not try to use map directly outside of the
-        //    closures below.
-        GroupingSpecifier::FirstChars(n) => Box::new(move |s| map.group_by_first_chars(s, *n)),
-        GroupingSpecifier::LastChars(n) => Box::new(move |s| map.group_by_last_chars(s, *n)),
-        GroupingSpecifier::Regex(re) => Box::new(move |s| map.group_by_regex(s, re)),
-    };
-
     let stdin = io::stdin();
-    let stdin = stdin.lock();
-    match options.input.separator {
-        Separator::Null => {
-            // Split on null characters and process every resulting token.
-            // Note: UTF-8 is designed so the only code point with a null byte is NUL itself,
-            // so we won't split a UTF-8 code point by splitting our byte stream before parsing
-            // to a String value.
-            for result in stdin.split(0) {
-                let token = result.unwrap();
-                let token = String::from_utf8(token).unwrap();
-                grouping_function(token);
-            }
-        }
-        Separator::Space => {
-            // Split on whitespace and process every resulting token.
-            for line in stdin.lines() {
-                let line = line.unwrap();
-                for word in line.split(char::is_whitespace) {
-                    // Skip reapted whitespace; split will go character-by-character, so it will
-                    // return every second whitespace character in a sequence, which we don't want.
-                    if word.chars().all(|c| c.is_whitespace()) {
-                        continue;
-                    }
-                    grouping_function(word.to_string());
-                }
-            }
-        }
-        Separator::Line => {
-            // Process each line as a single token.
-            for line in stdin.lines() {
-                let line = line.unwrap();
-                grouping_function(line.clone());
-            }
-        }
-    }
+    let locked_stdin = stdin.lock();
+    process_input(locked_stdin, &mut map, &options);
+    output_results(&map, &options);
 }
 
 fn output_results<Map>(map: &Map, options: &GroupByOptions)

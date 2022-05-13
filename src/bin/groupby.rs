@@ -27,16 +27,13 @@ where
     // Generate the required outputs.
     if let Some(cmd) = &options.output.run_command {
         // Retrieve the current shell for later use (if needed).
-        let shell = match std::env::var(SHELL_VAR) {
-            Ok(shell) => shell,
-            Err(e) => {
-                eprintln!(
-                    "Couldn't retrieve environment variable {}: {}",
-                    SHELL_VAR, e
-                );
-                std::process::exit(1);
-            }
-        };
+        let shell = std::env::var(SHELL_VAR).unwrap_or_else(|e| {
+            eprintln!(
+                "Couldn't retrieve environment variable {}: {}",
+                SHELL_VAR, e
+            );
+            std::process::exit(1);
+        });
 
         for (key, values) in map.iter() {
             if !options.output.only_group_names {

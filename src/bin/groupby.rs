@@ -22,11 +22,7 @@ where
     Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
 {
     // Determine what line separator the user wants.
-    let line_separator = match options.output.separator {
-        Separator::Null => "\0",
-        Separator::Space => " ",
-        Separator::Line => "\n",
-    };
+    let line_separator = options.output.separator.sep();
 
     // Generate the required outputs.
     if let Some(cmd) = &options.output.run_command {

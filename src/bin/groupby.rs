@@ -35,7 +35,9 @@ where
             std::process::exit(1);
         });
 
+        // REPLACE WITH PARALLEL ITERATOR
         for (key, values) in map.iter() {
+            // DELAY UNTIL LATER
             if !options.output.only_group_names {
                 print_group_header(key);
             }
@@ -47,7 +49,19 @@ where
             // might prefer and to use its features (at least in theory).
             //
             // TODO Add a command-line option to specify the exact shell invocation.
+
+            // IS COPY
             let shell_args = ["-c", cmd];
+
+            // CREATE A DEPENDENCY INJECTION INNER FUNCTION THAT TAKES COMMAND OR A TEST DOUBLE,
+            // THEN CREATE A WRAPPER THAT PASSES COMMAND, AND CALL IT HERE.
+            //
+            // FUNCTION JOBS:
+            // - INVOKE COMMAND OR DOUBLE
+            // - WRITE TO PIPED STDIN
+            // - FLUSH STDIN WRITER
+            // - WAIT FOR COMPLETION SYNCHRONOUSLY (INTENTIONALLY LIMITS FORKING TO #CPUS)
+            // - [CommandReport] LOCK A SHARED BTREEMAP AND ADD KEY->PIPED OUTPUT
             let mut child = Command::new(&shell)
                 .args(&shell_args)
                 .stdin(Stdio::piped())
@@ -69,6 +83,8 @@ where
             }
             child.wait().unwrap();
         }
+
+        // SINGLE-THREADED ITERATOR: PRINT RESULTS FROM OUTPUT BTREEMAP
     } else {
         // Default behavior: print to standard output.
         for (key, values) in map.iter() {

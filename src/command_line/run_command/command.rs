@@ -21,13 +21,12 @@ where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
 {
-    let mut foo = C::new(program)
+    C::new(program)
         .args(shell_args)
         .stdin(Stdio::piped()) // Stdio::piped is not tested.
         .stdout(Stdio::piped()) // Stdio::piped is not tested.
         .spawn()
-        .expect("Shell command failed.");
-    foo
+        .expect("Shell command failed.")
 }
 
 trait RunCommand {

@@ -29,6 +29,8 @@ where
         .expect("Shell command failed.")
 }
 
+// Mirrors the way we use std::process::Command. This allows us to use dependency injection in our
+// tests: MockCommand implements RunCommand.
 trait RunCommand {
     type Child;
 
@@ -74,6 +76,11 @@ impl RunCommand for std::process::Command {
     }
 }
 
+// Mirrors the way we use std::process::Child. This allows us to use dependency injection in our
+// tests: MockCommandChild implements RunCommandChild.
+//
+// In order to clean up both tests and the functions they're testing, this provides a clean
+// interface; implementors handle any messy details.
 trait RunCommandChild {
     type Stdin: Write;
     type Stdout: Read;

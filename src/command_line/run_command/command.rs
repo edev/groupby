@@ -1,7 +1,7 @@
 use std::convert::AsRef;
 use std::ffi::OsStr;
-use std::io;
-use std::process::{Child, Command, Stdio};
+use std::io::{self, Read, Write};
+use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 /// Runs a [std::process::Command] and returns its stdout.
 // TODO Figure out what strategy for handling stderr is best.
@@ -75,9 +75,24 @@ impl RunCommand for std::process::Command {
 }
 
 trait RunCommandChild {
+    type Stdin: Write;
+    type Stdout: Read;
+
+    fn stdin(&mut self) -> &mut Self::Stdin;
+    fn stdout(&mut self) -> &mut Self::Stdout;
 }
 
 impl RunCommandChild for Child {
+    type Stdin = ChildStdin;
+    type Stdout = ChildStdout;
+
+    fn stdin(&mut self) -> &mut Self::Stdin {
+        self.stdin.as_mut().unwrap()
+    }
+
+    fn stdout(&mut self) -> &mut Self::Stdout {
+        self.stdout.as_mut().unwrap()
+    }
 }
 
 #[cfg(test)]
@@ -115,9 +130,7 @@ mod tests {
 
         fn spawn(&mut self) -> io::Result<Self::Child> {
             self.calls.push("spawn()".to_string());
-            Ok(MockCommandChild {
-                command: self.clone(),
-            })
+            Ok(MockCommandChild::new(&self))
         }
 
         fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self {
@@ -133,9 +146,31 @@ mod tests {
 
     struct MockCommandChild {
         command: MockCommand,
+        stdin: Vec<u8>,
+        stdout: &'static [u8],
     }
 
     impl RunCommandChild for MockCommandChild {
+        type Stdin = Vec<u8>;
+        type Stdout = &'static [u8];
+
+        fn stdin(&mut self) -> &mut Self::Stdin {
+            &mut self.stdin
+        }
+
+        fn stdout(&mut self) -> &mut Self::Stdout {
+            &mut self.stdout
+        }
+    }
+
+    impl MockCommandChild {
+        fn new(command: &MockCommand) -> MockCommandChild {
+            MockCommandChild {
+                command: command.clone(),
+                stdin: vec![],
+                stdout: b"the program output is a lie",
+            }
+        }
     }
 
     mod command {

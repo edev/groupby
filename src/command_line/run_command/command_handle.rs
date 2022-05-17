@@ -1,4 +1,5 @@
 use super::*;
+use std::io;
 
 /// A handle for a command started through [super::command::run_command()].
 pub struct CommandHandle<RCC: RunCommandChild> {
@@ -15,19 +16,17 @@ impl<RCC: RunCommandChild> CommandHandle<RCC> {
     ///
     /// This method is only safe to call once, since it [takes](Option::take()) the
     /// handle's standard input.
-    pub fn stdin<'a>(
-        &mut self,
-        separator: &'a str,
-    ) -> StandardInput<'a, <RCC as RunCommandChild>::Stdin> {
+    pub fn stdin<'a>(&mut self, separator: &'a str) -> StandardInput<'a, RCC::Stdin> {
         StandardInput::new(self.child.stdin(), separator.as_bytes())
     }
-
-    /// TODO
-    pub fn stdout() {}
 
     /// Consumes Self and returns the underlying handle, e.g. [std::process::Child].
     pub fn child(self) -> RCC {
         self.child
+    }
+
+    pub fn wait_with_output(self) -> io::Result<RCC::Output> {
+        self.child.wait_with_output()
     }
 }
 

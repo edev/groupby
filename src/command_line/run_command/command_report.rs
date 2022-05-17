@@ -1,29 +1,35 @@
+//! Simple reporting of results from running commands on groups.
+
 use std::collections::BTreeMap;
-use std::io::Read;
 use std::sync::{Arc, Mutex};
 
 /// A common interface for single- and multi-threaded command runners to record results.
 ///
-/// Single-threaded command runners  can use `BTreeMap<&str, Vec<u8>>`, and multi-threaded runners
-/// can use `Arc<Mutex<BTreeMap<&str, Vec<u8>>>>`.
-pub trait CommandReport<'a, R: Read> {
-    fn report(&mut self, key: &'a str, output: R);
+/// Single-threaded command runners  can use any type that implements this trait, such as
+/// `BTreeMap<&str, Vec<u8>>`. Multi-threaded command runners can wrap any type that implements
+/// this trait with `Arc<Mutex<_>>` to gain access to the implementation of
+/// [CommandReportInteriorMutable], which calls [CommandReport::report] safely on the inner type.
+// TODO Replace Vec<u8> with a generic (Vec<T> or something else), since we no longer use Read.
+pub trait CommandReport<'a> {
+    fn report(&mut self, key: &'a str, output: Vec<u8>);
 }
 
-impl<'a, R: Read> CommandReport<'a, R> for BTreeMap<&'a str, Vec<u8>> {
-    fn report(&mut self, key: &'a str, mut output: R) {
-        let mut buf: Vec<u8> = Vec::new();
-        output.read_to_end(&mut buf).unwrap();
-        self.insert(key, buf);
+impl<'a> CommandReport<'a> for BTreeMap<&'a str, Vec<u8>> {
+    fn report(&mut self, key: &'a str, output: Vec<u8>) {
+        self.insert(key, output);
     }
 }
 
-impl<'a, R, CR> CommandReport<'a, R> for Arc<Mutex<CR>>
+/// Wraps [CommandReport] in an `Arc<Mutex<_>>` for multi-threaded reporting.
+pub trait CommandReportInteriorMutable<'a> {
+    fn report(&self, key: &'a str, output: Vec<u8>);
+}
+
+impl<'a, CR> CommandReportInteriorMutable<'a> for Arc<Mutex<CR>>
 where
-    R: Read,
-    CR: CommandReport<'a, R>,
+    CR: CommandReport<'a>,
 {
-    fn report(&mut self, key: &'a str, output: R) {
+    fn report(&self, key: &'a str, output: Vec<u8>) {
         self.lock().unwrap().report(key, output);
     }
 }
@@ -32,30 +38,11 @@ where
 mod tests {
     use super::*;
 
-    use std::io::{self, Error, ErrorKind};
-
-    struct PanicReader {}
-
-    impl Read for PanicReader {
-        fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
-            Err(Error::new(
-                ErrorKind::PermissionDenied,
-                "This is only a test",
-            ))
-        }
-    }
-
-    // Some helpers to keep us DRY.
-
     fn works<'a>(map: &mut BTreeMap<&'a str, Vec<u8>>) {
         let results = "cat nap sofa sun warm smile";
         let key = "cat";
-        map.report(key, results.as_bytes());
+        map.report(key, results.as_bytes().to_vec());
         assert_eq!(results.as_bytes(), map.get(key).unwrap());
-    }
-
-    fn panics_on_output_error<'a>(map: &mut BTreeMap<&'a str, Vec<u8>>) {
-        map.report("foo", PanicReader {});
     }
 
     mod btree_map {
@@ -64,12 +51,6 @@ mod tests {
         #[test]
         fn works() {
             super::works(&mut BTreeMap::new());
-        }
-
-        #[test]
-        #[should_panic]
-        fn panics_on_output_error() {
-            super::panics_on_output_error(&mut BTreeMap::new());
         }
     }
 
@@ -82,13 +63,6 @@ mod tests {
         fn works() {
             let arc = Arc::new(Mutex::new(BTreeMap::new()));
             super::works(arc.lock().unwrap().deref_mut());
-        }
-
-        #[test]
-        #[should_panic]
-        fn panics_on_output_error() {
-            let arc = Arc::new(Mutex::new(BTreeMap::new()));
-            super::panics_on_output_error(arc.lock().unwrap().deref_mut());
         }
     }
 }

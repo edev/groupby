@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 ///
 /// Single-threaded command runners  can use `BTreeMap<&str, Vec<u8>>`, and multi-threaded runners
 /// can use `Arc<Mutex<BTreeMap<&str, Vec<u8>>>>`.
-trait CommandReport<'a, R: Read> {
+pub trait CommandReport<'a, R: Read> {
     fn report(&mut self, key: &'a str, output: R);
 }
 

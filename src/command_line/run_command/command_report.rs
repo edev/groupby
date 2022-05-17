@@ -6,30 +6,29 @@ use std::sync::{Arc, Mutex};
 /// A common interface for single- and multi-threaded command runners to record results.
 ///
 /// Single-threaded command runners  can use any type that implements this trait, such as
-/// `BTreeMap<&str, Vec<u8>>`. Multi-threaded command runners can wrap any type that implements
+/// `BTreeMap<&str, T>`. Multi-threaded command runners can wrap any type that implements
 /// this trait with `Arc<Mutex<_>>` to gain access to the implementation of
 /// [CommandReportInteriorMutable], which calls [CommandReport::report] safely on the inner type.
-// TODO Replace Vec<u8> with a generic (Vec<T> or something else), since we no longer use Read.
-pub trait CommandReport<'a> {
-    fn report(&mut self, key: &'a str, output: Vec<u8>);
+pub trait CommandReport<'a, T> {
+    fn report(&mut self, key: &'a str, output: T);
 }
 
-impl<'a> CommandReport<'a> for BTreeMap<&'a str, Vec<u8>> {
-    fn report(&mut self, key: &'a str, output: Vec<u8>) {
+impl<'a, T> CommandReport<'a, T> for BTreeMap<&'a str, T> {
+    fn report(&mut self, key: &'a str, output: T) {
         self.insert(key, output);
     }
 }
 
 /// Wraps [CommandReport] in an `Arc<Mutex<_>>` for multi-threaded reporting.
-pub trait CommandReportInteriorMutable<'a> {
-    fn report(&self, key: &'a str, output: Vec<u8>);
+pub trait CommandReportInteriorMutable<'a, T> {
+    fn report(&self, key: &'a str, output: T);
 }
 
-impl<'a, CR> CommandReportInteriorMutable<'a> for Arc<Mutex<CR>>
+impl<'a, CR, T> CommandReportInteriorMutable<'a, T> for Arc<Mutex<CR>>
 where
-    CR: CommandReport<'a>,
+    CR: CommandReport<'a, T>,
 {
-    fn report(&self, key: &'a str, output: Vec<u8>) {
+    fn report(&self, key: &'a str, output: T) {
         self.lock().unwrap().report(key, output);
     }
 }

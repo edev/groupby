@@ -4,8 +4,10 @@ use std::ffi::OsStr;
 use std::process::{self, Stdio};
 
 /// Spawns a [std::process::Command] with piped I/O and returns a handle to it.
-// TODO Figure out what strategy for handling stderr is best.
-// Should we give the option to abort if any command prints to stderr?
+///
+/// Note that standard error is not piped. Because we assume that we can't possibly know how the
+/// user will want to handle error output, we simply allow it to immediately be displayed. It's
+/// possible that this behavior might change in the future.
 pub fn run<'a, I>(program: &'a str, shell_args: I, separator: &'a str) -> Handle<'a, process::Child>
 where
     I: IntoIterator<Item = &'a str>,

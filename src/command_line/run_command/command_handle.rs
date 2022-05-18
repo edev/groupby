@@ -2,22 +2,16 @@ use super::*;
 use std::io;
 
 /// A handle for a command started through [super::command::run_command()].
-pub struct CommandHandle<RCC: RunCommandChild> {
+pub struct CommandHandle<'a, RCC: RunCommandChild> {
     child: RCC,
+    pub stdin: StandardInput<'a, RCC::Stdin>,
 }
 
-impl<RCC: RunCommandChild> CommandHandle<RCC> {
+impl<'a, RCC: RunCommandChild> CommandHandle<'a, RCC> {
     /// Creates a new handle for `child`.
-    pub fn new(child: RCC) -> Self {
-        CommandHandle { child }
-    }
-
-    /// Returns a [StandardInput] that uses `separator` between entries.
-    ///
-    /// This method is only safe to call once, since it [takes](Option::take()) the
-    /// handle's standard input.
-    pub fn stdin<'a>(&mut self, separator: &'a str) -> StandardInput<'a, RCC::Stdin> {
-        StandardInput::new(self.child.stdin(), separator.as_bytes())
+    pub fn new(mut child: RCC, sep: &'a str) -> Self {
+        let stdin = StandardInput::new(child.stdin(), sep.as_bytes());
+        CommandHandle { child, stdin }
     }
 
     /// Consumes Self and returns the underlying handle, e.g. [std::process::Child].
@@ -26,6 +20,7 @@ impl<RCC: RunCommandChild> CommandHandle<RCC> {
     }
 
     pub fn wait_with_output(self) -> io::Result<RCC::Output> {
+        drop(self.stdin);
         self.child.wait_with_output()
     }
 }
@@ -42,8 +37,8 @@ mod tests {
         MockCommandChild::new(&command())
     }
 
-    fn handle() -> CommandHandle<MockCommandChild> {
-        CommandHandle::new(child())
+    fn handle() -> CommandHandle<'static, MockCommandChild> {
+        CommandHandle::new(child(), " >> ")
     }
 
     mod stdin {
@@ -54,11 +49,10 @@ mod tests {
             // There's no easy way to establish equality due to the nature of the values involved,
             // so we have to write a mini integration test to reach a mocked stdin we can check.
             let mut handle = handle();
-            let mut stdin: StandardInput<Vec<u8>> = handle.stdin("2");
-            let inputs = vec!["1", "3"];
-            stdin.provide_all(inputs.iter());
-            let buffer = stdin.stdin().into_inner().unwrap();
-            assert_eq!(buffer, b"1232");
+            let inputs = vec!["1", "2"];
+            handle.stdin.provide_all(inputs.iter());
+            let buffer = handle.stdin.stdin().into_inner().unwrap();
+            assert_eq!(buffer, b"1 >> 2 >> ");
         }
 
         #[test]

@@ -1,5 +1,18 @@
 use std::io::{BufWriter, Write};
 
+/// Record-oriented wrapper around a [writer](Write).
+///
+/// Provides a simple interface for writing either individual records or collections of records to
+/// a writer, adding a separator after each one.
+///
+/// # Warnings
+///
+/// Values of this type take ownership of the writer you provide. This means, for instance, that if
+/// you provide a [ChildStdin](std::process::ChildStdin), it will live as long as this struct and
+/// will not be automatically dropped by methods on [Child](std::process::Child) such as
+/// [wait_with_output()](std::process::Child::wait_with_output()). **This guarantees a deadlock
+/// if you don't drop the StandardWriter before calling a method that waits!**
+// TODO Rename StandardInput to be more general, e.g. RecordProvider. Rename ::stdin() too.
 pub struct StandardInput<'a, W: Write> {
     stdin: BufWriter<W>,
     separator: &'a [u8],

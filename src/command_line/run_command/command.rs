@@ -6,15 +6,19 @@ use std::process::{Child, Command, Stdio};
 /// Spawns a [std::process::Command] with piped I/O and returns a handle to it.
 // TODO Figure out what strategy for handling stderr is best.
 // Should we give the option to abort if any command prints to stderr?
-pub fn run_command<'a, I>(program: &'a str, shell_args: I) -> CommandHandle<Child>
+pub fn run_command<'a, I>(
+    program: &'a str,
+    shell_args: I,
+    separator: &'a str,
+) -> CommandHandle<'a, Child>
 where
     I: IntoIterator<Item = &'a str>,
 {
-    command::<Command, _, _>(program, shell_args)
+    command::<Command, _, _>(program, shell_args, separator)
 }
 
 // A testable function that holds the main logic of run_command().
-fn command<C, I, S>(program: S, shell_args: I) -> CommandHandle<C::Child>
+fn command<C, I, S>(program: S, shell_args: I, separator: &str) -> CommandHandle<'_, C::Child>
 where
     C: RunCommand,
     I: IntoIterator<Item = S>,
@@ -27,7 +31,7 @@ where
         .spawn()
         .expect("Shell command failed.");
 
-    CommandHandle::new(child)
+    CommandHandle::new(child, separator)
 }
 
 #[cfg(test)]
@@ -41,7 +45,7 @@ mod tests {
         fn spawns_command_correctly() {
             let program = "groupby";
             let shell_args = ["-f3", "-c", "echo recursion five!"];
-            let handle = command::<MockCommand, _, _>(program.clone(), shell_args.clone());
+            let handle = command::<MockCommand, _, _>(program.clone(), shell_args.clone(), ", ");
 
             let expected: Vec<String> = vec![
                 "new(groupby)",

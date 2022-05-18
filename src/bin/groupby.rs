@@ -51,9 +51,9 @@ where
 
             // Pass along the group's contents (or name, if output.only_group_names) via stdin.
             if options.output.only_group_names {
-                handle.stdin.provide(key);
+                handle.stdin.write(key);
             } else {
-                handle.stdin.provide_all(values.iter());
+                handle.stdin.write_all(values.iter());
             }
 
             // Wait for the process to finish, then record its output so we can print it later.

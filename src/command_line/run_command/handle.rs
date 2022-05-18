@@ -4,13 +4,13 @@ use std::io;
 /// A handle for a command started through [super::run::run()].
 pub struct Handle<'a, CC: Child> {
     child: CC,
-    pub stdin: StandardInput<'a, CC::Stdin>,
+    pub stdin: RecordWriter<'a, CC::Stdin>,
 }
 
 impl<'a, CC: Child> Handle<'a, CC> {
     /// Creates a new handle for `child`.
     pub fn new(mut child: CC, sep: &'a str) -> Self {
-        let stdin = StandardInput::new(child.stdin(), sep.as_bytes());
+        let stdin = RecordWriter::new(child.stdin(), sep.as_bytes());
         Handle { child, stdin }
     }
 
@@ -50,8 +50,8 @@ mod tests {
             // so we have to write a mini integration test to reach a mocked stdin we can check.
             let mut handle = handle();
             let inputs = vec!["1", "2"];
-            handle.stdin.provide_all(inputs.iter());
-            let buffer = handle.stdin.stdin().into_inner().unwrap();
+            handle.stdin.write_all(inputs.iter());
+            let buffer = handle.stdin.writer().into_inner().unwrap();
             assert_eq!(buffer, b"1 >> 2 >> ");
         }
 

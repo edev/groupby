@@ -12,41 +12,40 @@ use std::io::{BufWriter, Write};
 /// will not be automatically dropped by methods on [Child](std::process::Child) such as
 /// [wait_with_output()](std::process::Child::wait_with_output()). **This guarantees a deadlock
 /// if you don't drop the StandardWriter before calling a method that waits!**
-// TODO Rename StandardInput to be more general, e.g. RecordProvider. Rename ::stdin() too.
-pub struct StandardInput<'a, W: Write> {
-    stdin: BufWriter<W>,
+pub struct RecordWriter<'a, W: Write> {
+    writer: BufWriter<W>,
     separator: &'a [u8],
 }
 
-impl<'a, W: Write> StandardInput<'a, W> {
-    pub fn new(stdin: W, separator: &'a [u8]) -> Self {
-        let stdin = BufWriter::new(stdin);
-        StandardInput { stdin, separator }
+impl<'a, W: Write> RecordWriter<'a, W> {
+    pub fn new(writer: W, separator: &'a [u8]) -> Self {
+        let writer = BufWriter::new(writer);
+        RecordWriter { writer, separator }
     }
 
-    pub fn provide(&mut self, value: &'_ str) {
-        self.write(value);
-        self.stdin.flush().unwrap();
+    pub fn write(&mut self, value: &'_ str) {
+        self._write(value);
+        self.writer.flush().unwrap();
     }
 
-    pub fn provide_all<I, S>(&mut self, values: I)
+    pub fn write_all<I, S>(&mut self, values: I)
     where
         I: Iterator<Item = &'a S>,
         S: 'a + ToString,
     {
         for value in values {
-            self.write(&value.to_string());
+            self._write(&value.to_string());
         }
-        self.stdin.flush().unwrap();
+        self.writer.flush().unwrap();
     }
 
-    fn write(&mut self, value: &str) {
-        self.stdin.write_all(value.as_bytes()).unwrap();
-        self.stdin.write_all(self.separator).unwrap();
+    fn _write(&mut self, value: &str) {
+        self.writer.write_all(value.as_bytes()).unwrap();
+        self.writer.write_all(self.separator).unwrap();
     }
 
-    pub fn stdin(self) -> BufWriter<W> {
-        self.stdin
+    pub fn writer(self) -> BufWriter<W> {
+        self.writer
     }
 }
 
@@ -61,20 +60,20 @@ mod tests {
         fn works() {
             let v = vec![];
             let sep = b"foo";
-            let stdin = StandardInput::new(v.clone(), sep);
-            assert_eq!(stdin.stdin.into_inner().unwrap(), v);
-            assert_eq!(stdin.separator, sep);
+            let writer = RecordWriter::new(v.clone(), sep);
+            assert_eq!(writer.writer.into_inner().unwrap(), v);
+            assert_eq!(writer.separator, sep);
         }
     }
 
-    mod provide {
+    mod write {
         use super::*;
 
         #[test]
         fn writes_with_separator_and_flushes() {
-            let mut stdin = StandardInput::new(vec![], b"hoo");
-            stdin.provide("boo");
-            assert_eq!(stdin.stdin.into_inner().unwrap(), b"boohoo");
+            let mut writer = RecordWriter::new(vec![], b"hoo");
+            writer.write("boo");
+            assert_eq!(writer.writer.into_inner().unwrap(), b"boohoo");
         }
 
         #[test]
@@ -82,14 +81,14 @@ mod tests {
         fn panics_if_write_fails() {
             let mut buf = [0, 0];
             let writer = &mut buf[0..2];
-            let mut stdin = StandardInput::new(writer, &[3, 4]);
-            stdin.provide("ab");
-            drop(stdin);
+            let mut writer = RecordWriter::new(writer, &[3, 4]);
+            writer.write("ab");
+            drop(writer);
             println!("{:?}", buf);
         }
     }
 
-    mod provide_all {
+    mod write_all {
         use super::*;
 
         #[test]
@@ -98,31 +97,31 @@ mod tests {
             let sep = ",\t";
             let mut buf = vec![];
 
-            let mut stdin = StandardInput::new(&mut buf, sep.as_bytes());
-            stdin.provide_all(values.iter());
+            let mut writer = RecordWriter::new(&mut buf, sep.as_bytes());
+            writer.write_all(values.iter());
 
             let expected: Vec<u8> = (values.join(sep) + sep).into_bytes();
-            assert_eq!(&expected, stdin.stdin.into_inner().unwrap());
+            assert_eq!(&expected, writer.writer.into_inner().unwrap());
         }
     }
 
-    mod stdin {
+    mod writer {
         use super::*;
 
         #[test]
-        fn moves_stdin() {
-            // Nearly the same as provide_all::writes_all_values_and_flushes(), except here we'll
-            // use stdin.stdin() instead of stdin.stdin.
+        fn moves_writer() {
+            // Nearly the same as write_all::writes_all_values_and_flushes(), except here we'll
+            // use writer.writer() instead of writer.writer.
 
             let values = ["My", "dog", "ate", "my", "homework"];
             let sep = ",\t";
             let mut buf = vec![];
 
-            let mut stdin = StandardInput::new(&mut buf, sep.as_bytes());
-            stdin.provide_all(values.iter());
+            let mut writer = RecordWriter::new(&mut buf, sep.as_bytes());
+            writer.write_all(values.iter());
 
             let expected: Vec<u8> = (values.join(sep) + sep).into_bytes();
-            assert_eq!(&expected, stdin.stdin().into_inner().unwrap());
+            assert_eq!(&expected, writer.writer().into_inner().unwrap());
         }
     }
 }

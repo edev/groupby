@@ -6,7 +6,7 @@ use std::io;
 
 // Simulates a std::process:Child for testing purposes.
 #[derive(Clone, Eq, PartialEq)]
-pub struct MockCommandChild {
+pub struct MockChild {
     pub command: MockCommand,
     pub output: &'static [u8],
 
@@ -16,10 +16,10 @@ pub struct MockCommandChild {
     pub stdout: Option<&'static [u8]>,
 }
 
-impl MockCommandChild {
-    pub fn new(command: &MockCommand) -> MockCommandChild {
+impl MockChild {
+    pub fn new(command: &MockCommand) -> MockChild {
         let out = b"the program output is a lie";
-        MockCommandChild {
+        MockChild {
             command: command.clone(),
             output: out,
             stdin: Some(vec![]),
@@ -32,7 +32,7 @@ impl MockCommandChild {
     }
 }
 
-impl RunCommandChild for MockCommandChild {
+impl Child for MockChild {
     type Output = Self::Stdout; // If needed, we can switch this to a trait later.
     type Stdin = Vec<u8>;
     type Stdout = &'static [u8];

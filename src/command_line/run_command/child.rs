@@ -1,12 +1,12 @@
 use std::io::{self, Read, Write};
-use std::process::{Child, ChildStdin, ChildStdout, Output};
+use std::process::{self, ChildStdin, ChildStdout, Output};
 
 // Mirrors the way we use std::process::Child. This allows us to use dependency injection in our
-// tests: MockCommandChild implements RunCommandChild.
+// tests: MockChild implements Child.
 //
 // In order to clean up both tests and the functions they're testing, this provides a clean
 // interface; implementors handle any messy details.
-pub trait RunCommandChild {
+pub trait Child {
     type Output;
     type Stdin: Write;
     type Stdout: Read;
@@ -17,7 +17,7 @@ pub trait RunCommandChild {
 }
 
 // These methods are not tested, since it is not feasible to test them.
-impl RunCommandChild for Child {
+impl Child for process::Child {
     type Output = Output;
     type Stdin = ChildStdin;
     type Stdout = ChildStdout;
@@ -31,6 +31,6 @@ impl RunCommandChild for Child {
     }
 
     fn wait_with_output(self) -> io::Result<Self::Output> {
-        Child::wait_with_output(self)
+        process::Child::wait_with_output(self)
     }
 }

@@ -1,7 +1,7 @@
 use groupby::command_line;
 use groupby::command_line::options::*;
 use groupby::command_line::process_input::*;
-use groupby::command_line::run_command::*;
+use groupby::command_line::run_command::{self, *};
 use groupby::grouped_collections::GroupedCollection;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
@@ -47,7 +47,7 @@ where
 
         map.par_iter().for_each(|(key, values)| {
             // Spawn the new shell process.
-            let mut handle = command::run_command(&shell, shell_args, line_separator);
+            let mut handle = run_command::run(&shell, shell_args, line_separator);
 
             // Pass along the group's contents (or name, if output.only_group_names) via stdin.
             if options.output.only_group_names {

@@ -1,21 +1,22 @@
-pub mod command;
-pub mod command_handle;
-pub mod command_report;
+mod child;
+mod command;
+pub mod handle;
+#[cfg(test)]
+pub mod mock_child;
 #[cfg(test)]
 pub mod mock_command;
-#[cfg(test)]
-pub mod mock_command_child;
-mod run_command;
-mod run_command_child;
+pub mod report;
+pub mod run;
 pub mod standard_input;
 
-pub use command_handle::CommandHandle;
-pub use command_report::CommandReport;
-pub use command_report::CommandReportInteriorMutable;
+pub use child::Child;
+pub use command::Command;
+pub use handle::Handle;
+#[cfg(test)]
+pub use mock_child::MockChild;
 #[cfg(test)]
 pub use mock_command::MockCommand;
-#[cfg(test)]
-pub use mock_command_child::MockCommandChild;
-pub use run_command::RunCommand;
-pub use run_command_child::RunCommandChild;
+pub use report::Report;
+pub use report::ReportInteriorMutable;
+pub use run::run;
 pub use standard_input::StandardInput;

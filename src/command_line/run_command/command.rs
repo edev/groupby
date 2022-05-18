@@ -1,64 +1,53 @@
 use super::*;
 use std::convert::AsRef;
 use std::ffi::OsStr;
-use std::process::{Child, Command, Stdio};
+use std::io;
+use std::process::{self, Stdio};
 
-/// Spawns a [std::process::Command] with piped I/O and returns a handle to it.
-// TODO Figure out what strategy for handling stderr is best.
-// Should we give the option to abort if any command prints to stderr?
-pub fn run_command<'a, I>(
-    program: &'a str,
-    shell_args: I,
-    separator: &'a str,
-) -> CommandHandle<'a, Child>
-where
-    I: IntoIterator<Item = &'a str>,
-{
-    command::<Command, _, _>(program, shell_args, separator)
+// Mirrors the way we use std::process::Command. This allows us to use dependency injection in our
+// tests: MockCommand implements Command.
+pub trait Command {
+    type Child: Child;
+
+    fn new<S: AsRef<OsStr>>(program: S) -> Self;
+
+    fn args<I, S>(&mut self, args: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>;
+
+    fn spawn(&mut self) -> io::Result<Self::Child>;
+
+    fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self;
+
+    fn stdout<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self;
 }
 
-// A testable function that holds the main logic of run_command().
-fn command<C, I, S>(program: S, shell_args: I, separator: &str) -> CommandHandle<'_, C::Child>
-where
-    C: RunCommand,
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let child = C::new(program)
-        .args(shell_args)
-        .stdin(Stdio::piped()) // Stdio::piped is not tested.
-        .stdout(Stdio::piped()) // Stdio::piped is not tested.
-        .spawn()
-        .expect("Shell command failed.");
+// These methods are not tested, since it is not feasible to test them.
+impl Command for process::Command {
+    type Child = process::Child;
 
-    CommandHandle::new(child, separator)
-}
+    fn new<S: AsRef<OsStr>>(program: S) -> Self {
+        process::Command::new(program)
+    }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    fn args<I, S>(&mut self, args: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        self.args(args)
+    }
 
-    mod command {
-        use super::*;
+    fn spawn(&mut self) -> io::Result<Self::Child> {
+        self.spawn()
+    }
 
-        #[test]
-        fn spawns_command_correctly() {
-            let program = "groupby";
-            let shell_args = ["-f3", "-c", "echo recursion five!"];
-            let handle = command::<MockCommand, _, _>(program.clone(), shell_args.clone(), ", ");
+    fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self {
+        self.stdin(cfg)
+    }
 
-            let expected: Vec<String> = vec![
-                "new(groupby)",
-                "args([-f3, -c, echo recursion five!])",
-                "stdin(Stdio { .. })",
-                "stdout(Stdio { .. })",
-                "spawn()",
-            ]
-            .iter()
-            .map(ToString::to_string)
-            .collect();
-
-            assert_eq!(expected, handle.child().command().calls);
-        }
+    fn stdout<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self {
+        self.stdout(cfg)
     }
 }

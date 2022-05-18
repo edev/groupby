@@ -12,8 +12,8 @@ pub struct MockCommand {
     pub calls: Vec<String>,
 }
 
-impl RunCommand for MockCommand {
-    type Child = MockCommandChild;
+impl Command for MockCommand {
+    type Child = MockChild;
 
     fn new<S: AsRef<OsStr>>(program: S) -> Self {
         let s = format!("new({})", program.as_ref().to_string_lossy());
@@ -38,7 +38,7 @@ impl RunCommand for MockCommand {
 
     fn spawn(&mut self) -> io::Result<Self::Child> {
         self.calls.push("spawn()".to_string());
-        Ok(MockCommandChild::new(&self))
+        Ok(MockChild::new(&self))
     }
 
     fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self {

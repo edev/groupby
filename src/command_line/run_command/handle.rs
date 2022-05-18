@@ -2,24 +2,24 @@ use super::*;
 use std::io;
 
 /// A handle for a command started through [super::command::run_command()].
-pub struct CommandHandle<'a, RCC: RunCommandChild> {
-    child: RCC,
-    pub stdin: StandardInput<'a, RCC::Stdin>,
+pub struct Handle<'a, CC: Child> {
+    child: CC,
+    pub stdin: StandardInput<'a, CC::Stdin>,
 }
 
-impl<'a, RCC: RunCommandChild> CommandHandle<'a, RCC> {
+impl<'a, CC: Child> Handle<'a, CC> {
     /// Creates a new handle for `child`.
-    pub fn new(mut child: RCC, sep: &'a str) -> Self {
+    pub fn new(mut child: CC, sep: &'a str) -> Self {
         let stdin = StandardInput::new(child.stdin(), sep.as_bytes());
-        CommandHandle { child, stdin }
+        Handle { child, stdin }
     }
 
     /// Consumes Self and returns the underlying handle, e.g. [std::process::Child].
-    pub fn child(self) -> RCC {
+    pub fn child(self) -> CC {
         self.child
     }
 
-    pub fn wait_with_output(self) -> io::Result<RCC::Output> {
+    pub fn wait_with_output(self) -> io::Result<CC::Output> {
         drop(self.stdin);
         self.child.wait_with_output()
     }
@@ -33,12 +33,12 @@ mod tests {
         MockCommand::new("")
     }
 
-    fn child() -> MockCommandChild {
-        MockCommandChild::new(&command())
+    fn child() -> MockChild {
+        MockChild::new(&command())
     }
 
-    fn handle() -> CommandHandle<'static, MockCommandChild> {
-        CommandHandle::new(child(), " >> ")
+    fn handle() -> Handle<'static, MockChild> {
+        Handle::new(child(), " >> ")
     }
 
     mod stdin {
@@ -71,7 +71,7 @@ mod tests {
         fn returns_child() {
             let program = "lazy-zebra";
             let command = MockCommand::new(program);
-            let child = MockCommandChild::new(&command);
+            let child = MockChild::new(&command);
             assert_eq!(child.command().calls[0], format!("new({})", program));
         }
     }

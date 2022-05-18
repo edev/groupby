@@ -1,7 +1,7 @@
 use super::*;
 use std::io;
 
-/// A handle for a command started through [super::command::run_command()].
+/// A handle for a command started through [super::run::run()].
 pub struct Handle<'a, CC: Child> {
     child: CC,
     pub stdin: StandardInput<'a, CC::Stdin>,

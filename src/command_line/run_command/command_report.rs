@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
+// TODO Remove Arc through this file, e.g. impl _ for Mutex<CR>?
 
 /// A common interface for single- and multi-threaded command runners to record results.
 ///

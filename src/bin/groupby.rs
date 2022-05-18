@@ -1,9 +1,10 @@
-use groupby::command_line::{self, options::*, process_input::*};
+use groupby::command_line;
+use groupby::command_line::options::*;
+use groupby::command_line::process_input::*;
+use groupby::command_line::run_command::*;
 use groupby::grouped_collections::GroupedCollection;
 use std::collections::BTreeMap;
-use std::io;
-use std::io::{BufWriter, Write};
-use std::process::{Command, Stdio};
+use std::io::{self, Write};
 
 // The environment variable that stores the name of the current shell.
 const SHELL_VAR: &str = "SHELL";
@@ -35,56 +36,37 @@ where
             std::process::exit(1);
         });
 
-        // REPLACE WITH PARALLEL ITERATOR
+        // let results: Arc<Mutex<BTreeMap<&str, Vec<u8>>>> = Arc::new(Mutex::new(BTreeMap::new()));
+        let mut results: BTreeMap<&str, Vec<u8>> = BTreeMap::new();
+
+        // Initialize the shell arguments required to run a command via the current shell.
+        // TODO Add a command-line option to specify the exact shell invocation.
+        let shell_args = ["-c", cmd];
+
+        // TODO Replace with parallel iterator and wrap results in Mutex.
         for (key, values) in map.iter() {
-            // DELAY UNTIL LATER
-            if !options.output.only_group_names {
-                print_group_header(key);
+            // Spawn the new shell process.
+            let mut handle = command::run_command(&shell, shell_args, line_separator);
+
+            // Pass along the group's contents (or name, if output.only_group_names) via stdin.
+            if options.output.only_group_names {
+                handle.stdin.provide(key);
+            } else {
+                handle.stdin.provide_all(values.iter());
             }
 
-            // Invoke a new shell and run it with the provided arguments.
-            // Note that we actually explicitly invoke a shell because the shell is
-            // responsible for parsing the command string, which might (very likely)
-            // have pipes, etc. This also frees the user to use whatever shell they
-            // might prefer and to use its features (at least in theory).
-            //
-            // TODO Add a command-line option to specify the exact shell invocation.
-
-            // IS COPY
-            let shell_args = ["-c", cmd];
-
-            // CREATE A DEPENDENCY INJECTION INNER FUNCTION THAT TAKES COMMAND OR A TEST DOUBLE,
-            // THEN CREATE A WRAPPER THAT PASSES COMMAND, AND CALL IT HERE.
-            //
-            // FUNCTION JOBS:
-            // - INVOKE COMMAND OR DOUBLE
-            // - WRITE TO PIPED STDIN
-            // - FLUSH STDIN WRITER
-            // - WAIT FOR COMPLETION SYNCHRONOUSLY (INTENTIONALLY LIMITS FORKING TO #CPUS)
-            // - [CommandReport] LOCK A SHARED BTREEMAP AND ADD KEY->PIPED OUTPUT
-            let mut child = Command::new(&shell)
-                .args(&shell_args)
-                .stdin(Stdio::piped())
-                .stdout(Stdio::inherit())
-                .spawn()
-                .expect("Shell command failed.");
-            {
-                let mut writer = BufWriter::new(child.stdin.as_mut().unwrap());
-                if options.output.only_group_names {
-                    writer.write_all(key.as_bytes()).unwrap();
-                    writer.write_all(line_separator.as_bytes()).unwrap();
-                } else {
-                    for line in values.iter() {
-                        writer.write_all(line.as_bytes()).unwrap();
-                        writer.write_all(line_separator.as_bytes()).unwrap();
-                    }
-                }
-                writer.flush().unwrap();
-            }
-            child.wait().unwrap();
+            // Wait for the process to finish, then record its output so we can print it later.
+            let output = handle.wait_with_output().unwrap();
+            results.report(key, output.stdout);
         }
 
-        // SINGLE-THREADED ITERATOR: PRINT RESULTS FROM OUTPUT BTREEMAP
+        // Print the outputs from each group. Note: as long as we use BTreeMap for both results and
+        // and map, which we do, the results should be sorted stably by key.
+        for (key, output) in results.iter() {
+            print_group_header(key);
+            io::stdout().write_all(output).unwrap();
+            print!("{}", line_separator);
+        }
     } else {
         // Default behavior: print to standard output.
         for (key, values) in map.iter() {

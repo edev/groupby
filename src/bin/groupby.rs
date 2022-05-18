@@ -6,7 +6,7 @@ use groupby::grouped_collections::GroupedCollection;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::io::{self, Write};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 // The environment variable that stores the name of the current shell.
 const SHELL_VAR: &str = "SHELL";
@@ -39,7 +39,7 @@ where
             std::process::exit(1);
         });
 
-        let results: Arc<Mutex<BTreeMap<&str, Vec<u8>>>> = Arc::new(Mutex::new(BTreeMap::new()));
+        let results: Mutex<BTreeMap<&str, Vec<u8>>> = Mutex::new(BTreeMap::new());
 
         // Initialize the shell arguments required to run a command via the current shell.
         // TODO Add a command-line option to specify the exact shell invocation.

@@ -1,14 +1,13 @@
 //! Simple reporting of results from running commands on groups.
 
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
-// TODO Remove Arc through this file, e.g. impl _ for Mutex<R>?
+use std::sync::Mutex;
 
 /// A common interface for single- and multi-threaded command runners to record results.
 ///
 /// Single-threaded command runners  can use any type that implements this trait, such as
 /// `BTreeMap<&str, T>`. Multi-threaded command runners can wrap any type that implements
-/// this trait with `Arc<Mutex<_>>` to gain access to the implementation of
+/// this trait with `Mutex<_>` to gain access to the implementation of
 /// [ReportInteriorMutable], which calls [Report::report] safely on the inner type.
 pub trait Report<'a, T> {
     fn report(&mut self, key: &'a str, output: T);
@@ -20,12 +19,12 @@ impl<'a, T> Report<'a, T> for BTreeMap<&'a str, T> {
     }
 }
 
-/// Wraps [Report] in an `Arc<Mutex<_>>` for multi-threaded reporting.
+/// Wraps [Report] in an `Mutex<_>` for multi-threaded reporting.
 pub trait ReportInteriorMutable<'a, T> {
     fn report(&self, key: &'a str, output: T);
 }
 
-impl<'a, R, T> ReportInteriorMutable<'a, T> for Arc<Mutex<R>>
+impl<'a, R, T> ReportInteriorMutable<'a, T> for Mutex<R>
 where
     R: Report<'a, T>,
 {
@@ -37,6 +36,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
 
     fn works<'a>(map: &mut BTreeMap<&'a str, Vec<u8>>) {
         let results = "cat nap sofa sun warm smile";
@@ -60,7 +60,13 @@ mod tests {
         use std::ops::DerefMut;
 
         #[test]
-        fn works() {
+        fn works_with_mutex() {
+            let mutex = Mutex::new(BTreeMap::new());
+            super::works(mutex.lock().unwrap().deref_mut());
+        }
+
+        #[test]
+        fn works_with_arc_mutex() {
             let arc = Arc::new(Mutex::new(BTreeMap::new()));
             super::works(arc.lock().unwrap().deref_mut());
         }

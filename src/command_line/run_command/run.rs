@@ -6,11 +6,7 @@ use std::process::{self, Stdio};
 /// Spawns a [std::process::Command] with piped I/O and returns a handle to it.
 // TODO Figure out what strategy for handling stderr is best.
 // Should we give the option to abort if any command prints to stderr?
-pub fn run<'a, I>(
-    program: &'a str,
-    shell_args: I,
-    separator: &'a str,
-) -> Handle<'a, process::Child>
+pub fn run<'a, I>(program: &'a str, shell_args: I, separator: &'a str) -> Handle<'a, process::Child>
 where
     I: IntoIterator<Item = &'a str>,
 {
@@ -62,4 +58,3 @@ mod tests {
         }
     }
 }
-

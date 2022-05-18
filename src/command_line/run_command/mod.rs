@@ -11,6 +11,7 @@ pub mod standard_input;
 
 pub use command_handle::CommandHandle;
 pub use command_report::CommandReport;
+pub use command_report::CommandReportInteriorMutable;
 #[cfg(test)]
 pub use mock_command::MockCommand;
 #[cfg(test)]

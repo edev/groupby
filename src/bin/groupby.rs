@@ -3,8 +3,10 @@ use groupby::command_line::options::*;
 use groupby::command_line::process_input::*;
 use groupby::command_line::run_command::*;
 use groupby::grouped_collections::GroupedCollection;
+use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::io::{self, Write};
+use std::sync::{Arc, Mutex};
 
 // The environment variable that stores the name of the current shell.
 const SHELL_VAR: &str = "SHELL";
@@ -18,9 +20,10 @@ fn main() {
     output_results(&map, &options);
 }
 
-fn output_results<Map>(map: &Map, options: &GroupByOptions)
+fn output_results<'a, Map>(map: &'a Map, options: &GroupByOptions)
 where
     Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
+    &'a Map: IntoParallelIterator<Item = (&'a String, &'a Vec<String>)>,
 {
     // Determine what line separator the user wants.
     let line_separator = options.output.separator.sep();
@@ -36,15 +39,13 @@ where
             std::process::exit(1);
         });
 
-        // let results: Arc<Mutex<BTreeMap<&str, Vec<u8>>>> = Arc::new(Mutex::new(BTreeMap::new()));
-        let mut results: BTreeMap<&str, Vec<u8>> = BTreeMap::new();
+        let results: Arc<Mutex<BTreeMap<&str, Vec<u8>>>> = Arc::new(Mutex::new(BTreeMap::new()));
 
         // Initialize the shell arguments required to run a command via the current shell.
         // TODO Add a command-line option to specify the exact shell invocation.
         let shell_args = ["-c", cmd];
 
-        // TODO Replace with parallel iterator and wrap results in Mutex.
-        for (key, values) in map.iter() {
+        map.par_iter().for_each(|(key, values)| {
             // Spawn the new shell process.
             let mut handle = command::run_command(&shell, shell_args, line_separator);
 
@@ -58,11 +59,11 @@ where
             // Wait for the process to finish, then record its output so we can print it later.
             let output = handle.wait_with_output().unwrap();
             results.report(key, output.stdout);
-        }
+        });
 
         // Print the outputs from each group. Note: as long as we use BTreeMap for both results and
         // and map, which we do, the results should be sorted stably by key.
-        for (key, output) in results.iter() {
+        for (key, output) in results.lock().unwrap().iter() {
             print_group_header(key);
             io::stdout().write_all(output).unwrap();
             print!("{}", line_separator);

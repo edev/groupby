@@ -116,3 +116,183 @@ pub fn run<'a>(options: &'a ShellCommandOptions, key: &'a str, values: &'a [Stri
     let output = handle.wait_with_output().unwrap();
     output.stdout
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::command_line::options::*;
+
+    mod line_separator {
+        use super::*;
+
+        fn options_for(sep: Separator) -> GroupByOptions {
+            GroupByOptions {
+                input: InputOptions {
+                    separator: Separator::Line,
+                },
+                grouping: GroupingSpecifier::FirstChars(1),
+                output: OutputOptions {
+                    separator: sep,
+                    only_group_names: false,
+                    run_command: None,
+                },
+            }
+        }
+
+        #[test]
+        fn returns_correct_line_separator() {
+            let options = options_for(Separator::Line);
+            assert_eq!(line_separator(&options), "\n");
+        }
+
+        #[test]
+        fn returns_correct_space_separator() {
+            let options = options_for(Separator::Space);
+            assert_eq!(line_separator(&options), " ");
+        }
+
+        #[test]
+        fn returns_correct_null_separator() {
+            let options = options_for(Separator::Null);
+            assert_eq!(line_separator(&options), "\0");
+        }
+    }
+
+    mod current_shell {
+        use super::*;
+
+        #[test]
+        fn returns_current_shell() {
+            // A cursory test will suffice here. Over-complicating things by swapping out the
+            // environment variable for the running test probably doesn't make much sense.
+            let expected = std::env::var(SHELL_VAR).unwrap();
+            assert_eq!(expected, current_shell());
+        }
+    }
+
+    mod shell_args {
+        use super::*;
+
+        #[test]
+        fn returns_reasonable_shell_args() {
+            // Some reasonably complex command that would require a shell to interpret it.
+            let cmd = "head < /dev/random | uniq >> random_strings.txt";
+
+            let expected = vec!["-c", cmd];
+            assert_eq!(expected, shell_args(cmd));
+        }
+    }
+
+    pub mod run_helpers {
+        use super::*;
+
+        // Returns a ShelLCommandOptions for use in run* tests.
+        pub fn options<'a>(only_group_names: bool) -> ShellCommandOptions<'a> {
+            ShellCommandOptions {
+                shell: current_shell(),
+                shell_args: shell_args("cat"),
+                line_separator: "   ",
+                only_group_names,
+            }
+        }
+
+        pub fn map() -> BTreeMap<String, Vec<String>> {
+            let mut map = BTreeMap::new();
+            map.insert(
+                "Dogs".to_string(),
+                vec!["Lassy".to_string(), "Buddy".to_string()],
+            );
+            map.insert(
+                "Cats".to_string(),
+                vec!["Meowser".to_string(), "Mittens".to_string()],
+            );
+            map
+        }
+
+        pub fn results<'a>() -> BTreeMap<&'a str, Vec<u8>> {
+            BTreeMap::new()
+        }
+
+        pub fn expected<'a>(map: &'a BTreeMap<String, Vec<String>>) -> BTreeMap<&'a str, Vec<u8>> {
+            let mut expected = BTreeMap::new();
+            for (key, vector) in map.iter() {
+                expected.insert(
+                    &key[..],
+                    vector
+                        .iter()
+                        .map(|s| s.to_owned() + "   ")
+                        .collect::<String>()
+                        .as_bytes()
+                        .to_vec(),
+                );
+            }
+            expected
+        }
+    }
+
+    mod run_commands_in_parallel {
+        use super::run_helpers::*;
+        use super::*;
+
+        #[test]
+        fn returns_correct_results() {
+            let map = map();
+            let options = options(false);
+            let results = results();
+            let results = run_commands_in_parallel(&map, options, results);
+            let expected = expected(&map);
+            assert_eq!(expected, results);
+        }
+    }
+
+    mod run_commands_sequentially {
+        use super::run_helpers::*;
+        use super::*;
+
+        #[test]
+        fn returns_correct_results() {
+            let map = map();
+            let options = options(false);
+            let results = results();
+            let results = run_commands_sequentially(&map, options, results);
+            let expected = expected(&map);
+            assert_eq!(expected, results);
+        }
+    }
+
+    mod run {
+        use super::run_helpers::*;
+        use super::*;
+
+        fn kv<'a>() -> (&'static str, Vec<String>) {
+            (
+                "dogs",
+                vec!["Fido".to_string(), "Sam".to_string(), "Spot".to_string()],
+            )
+        }
+
+        #[test]
+        fn with_only_group_names_works() {
+            let options = options(true);
+            let (key, values) = kv();
+
+            // By converting values to strings, we make error output much easier to read.
+            let expected = "dogs   ".to_string();
+            let actual = run(&options, &key, &values);
+            let actual = String::from_utf8_lossy(&actual);
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn with_group_contents_works() {
+            let options = options(false);
+            let (key, values) = kv();
+
+            // By converting values to strings, we make error output much easier to read.
+            let expected = "Fido   Sam   Spot   ".to_string();
+            let actual = run(&options, &key, &values);
+            let actual = String::from_utf8_lossy(&actual);
+            assert_eq!(expected, actual);
+        }
+    }
+}

@@ -10,6 +10,14 @@ use std::sync::Mutex;
 /// The environment variable that stores the name of the current shell.
 const SHELL_VAR: &str = "SHELL";
 
+/// Processes groups and writes the output to a [writer](Write).
+///
+/// Top-level helper for outputting a collection of groups according to a [GroupByOptions].
+/// Processes groups based on `options` and writes the final output to `output`.
+///
+/// If `options.run_command` is a `Some` value, processes each group through the specified command;
+/// see [run()] for details. If `options.run_command` is `None`, writes the group
+/// to `output` according to `options.output`.
 pub fn output_results<'a, M, O>(output: O, map: &'a M, options: &'a GroupByOptions)
 where
     M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
@@ -127,9 +135,8 @@ pub struct ShellCommandOptions<'a> {
 
 /// Runs commands over groups in parallel.
 ///
-/// Runs the command specified by `options` once per group. Depending on
-/// `options.only_group_names`, it will pass either the group's key or the group's contents,
-/// separated by `options.line_separator`, to the command via standard input.
+/// Runs the command specified by `options` once per group. See [run()] for
+/// details on how the command is run.
 ///
 /// This version uses [Rayon](rayon) to run as many commands at a time as there are logical CPU
 /// cores. For a single-threaded version, see [run_commands_sequentially].
@@ -149,9 +156,8 @@ where
 
 /// Runs commands over groups, one at a time.
 ///
-/// Runs the command specified by `options` once per group. Depending on
-/// `options.only_group_names`, it will pass either the group's key or the group's contents,
-/// separated by `options.line_separator`, to the command via standard input.
+/// Runs the command specified by `options` once per group. See [run()] for
+/// details on how the command is run.
 ///
 /// This version is single-threaded, running only one command at a time. For a multi-threaded
 /// version, see [run_commands_in_parallel].
@@ -173,7 +179,20 @@ where
     results
 }
 
-// Everything inside an iterator; caller can decide whether to run it in parallel or in sequence.
+/// Runs a shell command against a single group and returns its captured output.
+///
+/// Runs the command specified by `options` once. Depending on `options.only_group_names`, it will
+/// pass either the group's `key` or the group's `values` to the command via standard input. In
+/// either case, each item passed to the group is followed by `options.line_separator`.
+///
+/// This is meant to sit on the inside of an iterator of the user's choice.
+/// [run_commands_in_parallel] and [run_commands_sequentially] essentially wrap this function in
+/// different iterators to provide the user with multiple execution strategies.
+///
+/// # Returns
+///
+/// The captured standard output from the command. Standard error is not captured but is instead
+/// written to the standard error inherited from the caller.
 pub fn run<'a>(options: &'a ShellCommandOptions, key: &'a str, values: &'a [String]) -> Vec<u8> {
     // Spawn the new shell process.
     let mut handle = run_command::run(

@@ -54,6 +54,20 @@ where
             }
         }
         writer.flush().unwrap();
+    } else if options.output.only_group_names {
+        // Simply output group names.
+        let mut writer = RecordWriter::new(output, line_separator(options).as_bytes());
+        for (key, _) in map.iter() {
+            writer.write(key);
+        }
+    } else {
+        // Simply output results directly.
+        let mut writer = RecordWriter::new(output, line_separator(options).as_bytes());
+        for (key, values) in map.iter() {
+            let header = format!("{}:", key);
+            writer.write(&header);
+            writer.write_all(values.iter());
+        }
     }
 }
 
@@ -247,6 +261,80 @@ mod tests {
 
                     let expected: Vec<u8> =
                         b"Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_vec();
+                    output_results(&mut output, &map, &options);
+                    assert_eq!(
+                        String::from_utf8_lossy(&expected),
+                        String::from_utf8_lossy(&output)
+                    );
+                }
+            }
+        }
+
+        mod without_run_command {
+            use super::*;
+
+            mod with_only_group_names {
+                use super::*;
+                use helpers::*;
+
+                #[test]
+                fn works() {
+                    let mut output: Vec<u8> = vec![];
+                    let options = options_for(None, true);
+                    let map = map();
+
+                    let expected: Vec<u8> = b"Cats\nDogs\n".to_vec();
+                    output_results(&mut output, &map, &options);
+                    assert_eq!(
+                        String::from_utf8_lossy(&expected),
+                        String::from_utf8_lossy(&output)
+                    );
+                }
+
+                #[test]
+                fn uses_output_separator() {
+                    let mut output: Vec<u8> = vec![];
+                    let mut options = options_for(None, true);
+                    options.output.separator = Separator::Null;
+                    let map = map();
+
+                    let expected: Vec<u8> = b"Cats\0Dogs\0".to_vec();
+                    output_results(&mut output, &map, &options);
+                    assert_eq!(
+                        String::from_utf8_lossy(&expected),
+                        String::from_utf8_lossy(&output)
+                    );
+                }
+            }
+
+            mod without_only_group_names {
+                use super::*;
+                use helpers::*;
+
+                #[test]
+                fn works() {
+                    let mut output: Vec<u8> = vec![];
+                    let options = options_for(None, false);
+                    let map = map();
+
+                    let expected: Vec<u8> =
+                        b"Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_vec();
+                    output_results(&mut output, &map, &options);
+                    assert_eq!(
+                        String::from_utf8_lossy(&expected),
+                        String::from_utf8_lossy(&output)
+                    );
+                }
+
+                #[test]
+                fn uses_output_separator() {
+                    let mut output: Vec<u8> = vec![];
+                    let mut options = options_for(None, false);
+                    options.output.separator = Separator::Null;
+                    let map = map();
+
+                    let expected: Vec<u8> =
+                        b"Cats:\0Meowser\0Mittens\0Dogs:\0Lassy\0Buddy\0".to_vec();
                     output_results(&mut output, &map, &options);
                     assert_eq!(
                         String::from_utf8_lossy(&expected),

@@ -1,3 +1,7 @@
+//! Processes a [GroupedCollection] according to [OutputOptions] and outputs the results.
+//!
+//! [OutputOptions]: crate::command_line::options::OutputOptions
+
 use crate::command_line::run_command::{self, *};
 use crate::command_line::GroupByOptions;
 use crate::grouped_collections::GroupedCollection;

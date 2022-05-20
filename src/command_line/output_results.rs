@@ -7,7 +7,7 @@ use std::io::{BufWriter, Write};
 use std::ops::Deref;
 use std::sync::Mutex;
 
-// The environment variable that stores the name of the current shell.
+/// The environment variable that stores the name of the current shell.
 const SHELL_VAR: &str = "SHELL";
 
 pub fn output_results<'a, M, O>(output: O, map: &'a M, options: &'a GroupByOptions)
@@ -71,14 +71,20 @@ where
     }
 }
 
-/// Returns the line separator specified in `options`.
+/// Returns the output line separator specified in `options`.
 fn line_separator(options: &GroupByOptions) -> &str {
     options.output.separator.sep()
 }
 
 /// Returns the current shell, e.g. `/usr/bin/zsh`.
-// TODO Instead of exiting here, return result so the caller can handle it.
-// Retrieve the current shell for later use (if needed).
+///
+/// # Panics
+///
+/// Exits with an error if it can't retrieve the current shell. This is because the function is
+/// meant only for internal use in the context of [output_results()], which is a top-level
+/// convenience method. A library user who prefers to handle this differently is free to invoke
+/// either [run_commands_in_parallel] or [run_commands_sequentially] directly and provide their own
+/// wrapping code.
 fn current_shell() -> String {
     std::env::var(SHELL_VAR).unwrap_or_else(|e| {
         eprintln!(
@@ -89,20 +95,44 @@ fn current_shell() -> String {
     })
 }
 
-// Initialize the shell arguments required to run a command via the current shell.
-// TODO Add a command-line option to specify the exact shell invocation.
+/// Initializes the shell arguments required to run a command via the current shell.
+///
+/// Note that this function is not smart in any way; it simply assumes that the shell accepts a
+/// `-c` argument followed by an argument containing a command string to interpret.
+// TODO Add a command-line option to specify the exact shell invocation?
 fn shell_args(cmd: &str) -> Vec<&str> {
     vec!["-c", cmd]
 }
 
+/// Options needed for running a shell command over a group.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ShellCommandOptions<'a> {
+    /// The path to the shell, e.g. `/usr/bin/zsh`.
     shell: String,
+
+    /// The arguments to pass to the shell, one per item in the [Vec], e.g. `vec!["-c", "do_thing |
+    /// tail -n 4"]`
     shell_args: Vec<&'a str>,
+
+    /// The string that should separate values passed to the command's standard input, e.g. `"\n"`.
     line_separator: &'a str,
+
+    /// If true, pass only the group's key followed by `line_separator` via the command's standard
+    /// input.
+    ///
+    /// If false, for each value in the group, write the value followed by `line_separator` to the
+    /// command's standard input.
     only_group_names: bool,
 }
 
+/// Runs commands over groups in parallel.
+///
+/// Runs the command specified by `options` once per group. Depending on
+/// `options.only_group_names`, it will pass either the group's key or the group's contents,
+/// separated by `options.line_separator`, to the command via standard input.
+///
+/// This version uses [Rayon](rayon) to run as many commands at a time as there are logical CPU
+/// cores. For a single-threaded version, see [run_commands_sequentially].
 pub fn run_commands_in_parallel<'a, M, R>(map: &'a M, options: ShellCommandOptions, results: R) -> R
 where
     M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
@@ -117,6 +147,14 @@ where
     results.into_inner().unwrap()
 }
 
+/// Runs commands over groups, one at a time.
+///
+/// Runs the command specified by `options` once per group. Depending on
+/// `options.only_group_names`, it will pass either the group's key or the group's contents,
+/// separated by `options.line_separator`, to the command via standard input.
+///
+/// This version is single-threaded, running only one command at a time. For a multi-threaded
+/// version, see [run_commands_in_parallel].
 pub fn run_commands_sequentially<'a, M, R>(
     map: &'a M,
     options: ShellCommandOptions,

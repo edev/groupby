@@ -3,7 +3,7 @@ use crate::command_line::GroupByOptions;
 use crate::grouped_collections::GroupedCollection;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::ops::Deref;
 use std::sync::Mutex;
 
@@ -29,6 +29,31 @@ where
 
         let results: BTreeMap<&str, Vec<u8>> = BTreeMap::new();
         let results = run_commands_in_parallel(map, shell_command_options, results);
+
+        // It might seem counter-intuitive, but when we output command results, we're going to
+        // deliberately ignore any separator specifications the user might have provided. The input
+        // separator is meant for parsing inputs, so it doesn't apply here. The output separator is
+        // for the benefit of whatever command (or command chain) is being run. The options do not
+        // include a specifier for which separator to use for this step. The sanest default is
+        // clearly newline. To even present this option would be really confusing, which is why it
+        // isn't currently an option anywhere in the crate.
+        const SEPARATOR: &str = "\n";
+
+        let mut writer = BufWriter::new(output);
+        if options.output.only_group_names {
+            for key in results.keys() {
+                writer.write_all(key.as_bytes()).unwrap();
+                writer.write_all(SEPARATOR.as_bytes()).unwrap();
+            }
+        } else {
+            let header_separator = format!(":{}", SEPARATOR);
+            for (key, value) in results.iter() {
+                writer.write_all(key.as_bytes()).unwrap();
+                writer.write_all(header_separator.as_bytes()).unwrap();
+                writer.write_all(value).unwrap();
+            }
+        }
+        writer.flush().unwrap();
     }
 }
 
@@ -122,6 +147,116 @@ mod tests {
     use super::*;
     use crate::command_line::options::*;
 
+    pub mod helpers {
+        use super::*;
+
+        // Returns a ShelLCommandOptions for use in run* tests.
+        pub fn options<'a>(only_group_names: bool) -> ShellCommandOptions<'a> {
+            ShellCommandOptions {
+                shell: current_shell(),
+                shell_args: shell_args("cat"),
+                line_separator: "   ",
+                only_group_names,
+            }
+        }
+
+        pub fn map() -> BTreeMap<String, Vec<String>> {
+            let mut map = BTreeMap::new();
+            map.insert(
+                "Dogs".to_string(),
+                vec!["Lassy".to_string(), "Buddy".to_string()],
+            );
+            map.insert(
+                "Cats".to_string(),
+                vec!["Meowser".to_string(), "Mittens".to_string()],
+            );
+            map
+        }
+
+        pub fn results<'a>() -> BTreeMap<&'a str, Vec<u8>> {
+            BTreeMap::new()
+        }
+
+        pub fn expected_results<'a>(
+            map: &'a BTreeMap<String, Vec<String>>,
+        ) -> BTreeMap<&'a str, Vec<u8>> {
+            let mut expected = BTreeMap::new();
+            for (key, vector) in map.iter() {
+                expected.insert(
+                    &key[..],
+                    vector
+                        .iter()
+                        .map(|s| s.to_owned() + "   ")
+                        .collect::<String>()
+                        .as_bytes()
+                        .to_vec(),
+                );
+            }
+            expected
+        }
+    }
+
+    mod output_results {
+        use super::*;
+
+        fn options_for(run_command: Option<String>, only_group_names: bool) -> GroupByOptions {
+            GroupByOptions {
+                input: InputOptions {
+                    separator: Separator::Line,
+                },
+                grouping: GroupingSpecifier::FirstChars(1),
+                output: OutputOptions {
+                    separator: Separator::Line,
+                    only_group_names,
+                    run_command,
+                },
+            }
+        }
+
+        mod with_run_command {
+            use super::*;
+
+            mod with_only_group_names {
+                use super::*;
+                use helpers::*;
+
+                #[test]
+                fn outputs_only_group_names() {
+                    let mut output: Vec<u8> = vec![];
+                    let options = options_for(Some(String::from("cat")), true);
+                    let map = map();
+
+                    let expected: Vec<u8> = b"Cats\nDogs\n".to_vec();
+                    output_results(&mut output, &map, &options);
+                    assert_eq!(
+                        String::from_utf8_lossy(&expected),
+                        String::from_utf8_lossy(&output)
+                    );
+                }
+            }
+
+            mod without_only_group_names {
+                use super::*;
+                use helpers::*;
+
+                #[test]
+                fn outputs_results_correctly() {
+                    let mut output: Vec<u8> = vec![];
+                    let options = options_for(Some(String::from("cat")), false);
+                    let map = map();
+
+                    let expected: Vec<u8> =
+                        b"Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_vec();
+                    output_results(&mut output, &map, &options);
+                    assert_eq!(
+                        String::from_utf8_lossy(&expected),
+                        String::from_utf8_lossy(&output)
+                    );
+                }
+            }
+        }
+    }
+
     mod line_separator {
         use super::*;
 
@@ -183,55 +318,8 @@ mod tests {
         }
     }
 
-    pub mod run_helpers {
-        use super::*;
-
-        // Returns a ShelLCommandOptions for use in run* tests.
-        pub fn options<'a>(only_group_names: bool) -> ShellCommandOptions<'a> {
-            ShellCommandOptions {
-                shell: current_shell(),
-                shell_args: shell_args("cat"),
-                line_separator: "   ",
-                only_group_names,
-            }
-        }
-
-        pub fn map() -> BTreeMap<String, Vec<String>> {
-            let mut map = BTreeMap::new();
-            map.insert(
-                "Dogs".to_string(),
-                vec!["Lassy".to_string(), "Buddy".to_string()],
-            );
-            map.insert(
-                "Cats".to_string(),
-                vec!["Meowser".to_string(), "Mittens".to_string()],
-            );
-            map
-        }
-
-        pub fn results<'a>() -> BTreeMap<&'a str, Vec<u8>> {
-            BTreeMap::new()
-        }
-
-        pub fn expected<'a>(map: &'a BTreeMap<String, Vec<String>>) -> BTreeMap<&'a str, Vec<u8>> {
-            let mut expected = BTreeMap::new();
-            for (key, vector) in map.iter() {
-                expected.insert(
-                    &key[..],
-                    vector
-                        .iter()
-                        .map(|s| s.to_owned() + "   ")
-                        .collect::<String>()
-                        .as_bytes()
-                        .to_vec(),
-                );
-            }
-            expected
-        }
-    }
-
     mod run_commands_in_parallel {
-        use super::run_helpers::*;
+        use super::helpers::*;
         use super::*;
 
         #[test]
@@ -240,13 +328,13 @@ mod tests {
             let options = options(false);
             let results = results();
             let results = run_commands_in_parallel(&map, options, results);
-            let expected = expected(&map);
+            let expected = expected_results(&map);
             assert_eq!(expected, results);
         }
     }
 
     mod run_commands_sequentially {
-        use super::run_helpers::*;
+        use super::helpers::*;
         use super::*;
 
         #[test]
@@ -255,13 +343,13 @@ mod tests {
             let options = options(false);
             let results = results();
             let results = run_commands_sequentially(&map, options, results);
-            let expected = expected(&map);
+            let expected = expected_results(&map);
             assert_eq!(expected, results);
         }
     }
 
     mod run {
-        use super::run_helpers::*;
+        use super::helpers::*;
         use super::*;
 
         fn kv<'a>() -> (&'static str, Vec<String>) {

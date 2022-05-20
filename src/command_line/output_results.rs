@@ -1,5 +1,45 @@
 //! Processes a [GroupedCollection] according to [OutputOptions] and outputs the results.
 //!
+//! # Examples
+//!
+//! ```
+//! use groupby::command_line::*;
+//! use groupby::command_line::output_results::output_results;
+//! use groupby::grouped_collections::GroupedCollection;
+//! use std::collections::BTreeMap;
+//!
+//! let mut output = vec![];
+//!
+//! let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
+//! let key = String::from("seasons");
+//! let seasons = ["winter", "spring", "summer", "fall"];
+//! for season in seasons {
+//!     map.add(key.clone(), season.to_string());
+//! }
+//!
+//! let options = GroupByOptions {
+//!     input: InputOptions {                       // Not used here.
+//!         separator: Separator::Line,             // Not used here.
+//!     },                                          //
+//!     grouping: GroupingSpecifier::FirstChars(4), // Not used here.
+//!     output: OutputOptions {
+//!         separator: Separator::Line,
+//!         only_group_names: false,
+//!         run_command: None,
+//!     }
+//! };
+//!
+//! output_results(&mut output, &map, &options);
+//!
+//! let expected = "seasons:\n\
+//!     winter\n\
+//!     spring\n\
+//!     summer\n\
+//!     fall\n".to_string();
+//!
+//! assert_eq!(expected, String::from_utf8_lossy(&output));
+//! ```
+//!
 //! [OutputOptions]: crate::command_line::options::OutputOptions
 
 use crate::command_line::run_command::{self, *};

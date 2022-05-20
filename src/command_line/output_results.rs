@@ -16,7 +16,7 @@ const SHELL_VAR: &str = "SHELL";
 /// Processes groups based on `options` and writes the final output to `output`.
 ///
 /// If `options.run_command` is a `Some` value, processes each group through the specified command;
-/// see [run()] for details. If `options.run_command` is `None`, writes the group
+/// see [capture_command_output] for details. If `options.run_command` is `None`, writes the group
 /// to `output` according to `options.output`.
 pub fn output_results<'a, M, O>(output: O, map: &'a M, options: &'a GroupByOptions)
 where
@@ -135,7 +135,7 @@ pub struct ShellCommandOptions<'a> {
 
 /// Runs commands over groups in parallel.
 ///
-/// Runs the command specified by `options` once per group. See [run()] for
+/// Runs the command specified by `options` once per group. See [capture_command_output()] for
 /// details on how the command is run.
 ///
 /// This version uses [Rayon](rayon) to run as many commands at a time as there are logical CPU
@@ -148,7 +148,7 @@ where
 {
     let results = Mutex::new(results);
     map.par_iter().for_each(|(key, value)| {
-        let result = run(&options, key, value);
+        let result = capture_command_output(&options, key, value);
         results.report(key, result);
     });
     results.into_inner().unwrap()
@@ -156,7 +156,7 @@ where
 
 /// Runs commands over groups, one at a time.
 ///
-/// Runs the command specified by `options` once per group. See [run()] for
+/// Runs the command specified by `options` once per group. See [capture_command_output()] for
 /// details on how the command is run.
 ///
 /// This version is single-threaded, running only one command at a time. For a multi-threaded
@@ -173,7 +173,7 @@ where
 {
     // For simplicity, we'll match the format to run_commands_in_parallel.
     map.iter().for_each(|(key, value)| {
-        let result = run(&options, key, value);
+        let result = capture_command_output(&options, key, value);
         results.report(key, result);
     });
     results
@@ -193,7 +193,11 @@ where
 ///
 /// The captured standard output from the command. Standard error is not captured but is instead
 /// written to the standard error inherited from the caller.
-pub fn run<'a>(options: &'a ShellCommandOptions, key: &'a str, values: &'a [String]) -> Vec<u8> {
+pub fn capture_command_output<'a>(
+    options: &'a ShellCommandOptions,
+    key: &'a str,
+    values: &'a [String],
+) -> Vec<u8> {
     // Spawn the new shell process.
     let mut handle = run_command::run(
         &options.shell,
@@ -493,7 +497,7 @@ mod tests {
         }
     }
 
-    mod run {
+    mod capture_command_output {
         use super::helpers::*;
         use super::*;
 
@@ -511,7 +515,7 @@ mod tests {
 
             // By converting values to strings, we make error output much easier to read.
             let expected = "dogs   ".to_string();
-            let actual = run(&options, &key, &values);
+            let actual = capture_command_output(&options, &key, &values);
             let actual = String::from_utf8_lossy(&actual);
             assert_eq!(expected, actual);
         }
@@ -523,7 +527,7 @@ mod tests {
 
             // By converting values to strings, we make error output much easier to read.
             let expected = "Fido   Sam   Spot   ".to_string();
-            let actual = run(&options, &key, &values);
+            let actual = capture_command_output(&options, &key, &values);
             let actual = String::from_utf8_lossy(&actual);
             assert_eq!(expected, actual);
         }

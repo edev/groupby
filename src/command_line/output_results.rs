@@ -237,6 +237,28 @@ where
 ///
 /// The captured standard output from the command. Standard error is not captured but is instead
 /// written to the standard error inherited from the caller.
+///
+/// # Examples
+///
+/// ```
+/// use groupby::command_line::output_results::*;
+///
+/// let options = ShellCommandOptions {
+///     shell: "/usr/bin/bash".to_string(),
+///     shell_args: vec!["-c", "cat"],
+///     line_separator: "\n",
+///     only_group_names: false,
+/// };
+///
+/// let key = "ABCs";
+/// let values: Vec<String> = ["a", "b", "c"]
+///     .iter()
+///     .map(ToString::to_string)
+///     .collect();
+///
+/// let output = capture_command_output(&options, &key, &values);
+/// assert_eq!(&String::from_utf8_lossy(&output), "a\nb\nc\n");
+/// ```
 pub fn capture_command_output<'a>(
     options: &'a ShellCommandOptions,
     key: &'a str,

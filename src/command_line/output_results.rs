@@ -160,21 +160,21 @@ fn shell_args(cmd: &str) -> Vec<&str> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ShellCommandOptions<'a> {
     /// The path to the shell, e.g. `/usr/bin/zsh`.
-    shell: String,
+    pub shell: String,
 
     /// The arguments to pass to the shell, one per item in the [Vec], e.g. `vec!["-c", "do_thing |
     /// tail -n 4"]`
-    shell_args: Vec<&'a str>,
+    pub shell_args: Vec<&'a str>,
 
     /// The string that should separate values passed to the command's standard input, e.g. `"\n"`.
-    line_separator: &'a str,
+    pub line_separator: &'a str,
 
     /// If true, pass only the group's key followed by `line_separator` via the command's standard
     /// input.
     ///
     /// If false, for each value in the group, write the value followed by `line_separator` to the
     /// command's standard input.
-    only_group_names: bool,
+    pub only_group_names: bool,
 }
 
 /// Runs commands over groups in parallel.

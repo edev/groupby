@@ -39,6 +39,26 @@ impl<K: Ord, V> Report<K, V> for BTreeMap<K, V> {
 }
 
 /// Wraps [Report] in an `Mutex<_>` for multi-threaded reporting.
+///
+/// # Examples
+///
+/// ```
+/// use groupby::command_line::run_command::report::*;
+/// use std::collections::BTreeMap;
+/// use std::sync::{Arc, Mutex};
+///
+/// let key = 2395;
+/// let report = "Process exited successfully.";
+///
+/// let mut results = Mutex::new(BTreeMap::new());
+/// results.report(key, report);
+/// assert_eq!(results.lock().unwrap().get(&key).unwrap(), &report);
+///
+/// // We can also wrap the Mutex if we need to, such as Arc<Mutex<BTree<_, _>>>:
+/// let mut results = Arc::new(Mutex::new(BTreeMap::new()));
+/// results.report(key, report);
+/// assert_eq!(results.lock().unwrap().get(&key).unwrap(), &report);
+/// ```
 pub trait ReportInteriorMutable<K, V> {
     fn report(&self, key: K, output: V);
 }

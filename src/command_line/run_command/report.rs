@@ -5,15 +5,34 @@ use std::sync::Mutex;
 
 /// A common interface for single- and multi-threaded command runners to record results.
 ///
-/// Single-threaded command runners  can use any type that implements this trait, such as
-/// `BTreeMap<&str, T>`. Multi-threaded command runners can wrap any type that implements
-/// this trait with `Mutex<_>` to gain access to the implementation of
-/// [ReportInteriorMutable], which calls [Report::report] safely on the inner type.
+/// Single-threaded command runners can use any type that implements this trait, such as
+/// `BTreeMap<&str, T>`. Multi-threaded command runners can wrap any type that implements this
+/// trait with `Mutex<_>` to gain access to the implementation of [ReportInteriorMutable], which
+/// calls [Report::report] safely on the inner type.
+///
+/// # Examples
+///
+/// ```
+/// use groupby::command_line::run_command::report::*;
+/// use std::collections::BTreeMap;
+///
+/// let mut results = BTreeMap::new();
+/// let key = 2395;
+/// let report = "Process exited successfully.";
+///
+/// results.report(key, report);
+/// assert_eq!(results.get(&key).unwrap(), &report);
+/// ```
 pub trait Report<K, V> {
+    /// Record `output` as the report for `key`.
+    ///
+    /// If this method is called more than once with the same `key`, older reports might be
+    /// discarded.
     fn report(&mut self, key: K, output: V);
 }
 
 impl<K: Ord, V> Report<K, V> for BTreeMap<K, V> {
+    /// Record `output` as the report for `key`. Discards any existing report for `key`.
     fn report(&mut self, key: K, output: V) {
         self.insert(key, output);
     }

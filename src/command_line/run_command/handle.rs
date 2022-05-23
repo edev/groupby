@@ -1,9 +1,20 @@
+//! A high-level handle for a command started through [super::run::run()].
 use super::*;
 use std::io;
 
 /// A handle for a command started through [super::run::run()].
 pub struct Handle<'a, CC: Child> {
+    /// The handle's inner child. We prevent direct access without moving mainly to force the user
+    /// to use our `wait_with_output` method, because calling
+    /// [std::process::Child::wait_with_output()] without first dropping [Handle::stdin] will
+    /// deadlock the calling code.
+    ///
+    /// If you know what you're doing and you want the raw child value back, you're free to take it;
+    /// just remember that its standard input has been moved into a [RecordWriter].
     child: CC,
+
+    /// A record-oriented writer for standard input. Each record you write is followed by the
+    /// separator you indicated when creating the handle.
     pub stdin: RecordWriter<'a, CC::Stdin>,
 }
 
@@ -19,6 +30,11 @@ impl<'a, CC: Child> Handle<'a, CC> {
         self.child
     }
 
+    /// Equivalent to [std::process::Child::wait_with_output].
+    ///
+    /// If you mean to call that method, **call this one instead**! Because the handle's
+    /// initializer moves the child's standard input into a [RecordWriter], it must be manually
+    /// dropped to prevent deadlock. This method drops it before waiting.
     pub fn wait_with_output(self) -> io::Result<CC::Output> {
         drop(self.stdin);
         self.child.wait_with_output()

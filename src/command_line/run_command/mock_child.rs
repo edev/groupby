@@ -27,6 +27,8 @@ impl MockChild {
         }
     }
 
+    // Convenience method; provides more consistent syntax when writing, e.g.,
+    // handle.child().command().calls.
     pub fn command(&self) -> &MockCommand {
         &self.command
     }
@@ -37,14 +39,17 @@ impl Child for MockChild {
     type Stdin = Vec<u8>;
     type Stdout = &'static [u8];
 
+    // Panics if called more than once, just like the real thing.
     fn stdin(&mut self) -> Self::Stdin {
         self.stdin.take().unwrap()
     }
 
+    // Panics if called more than once, just like the real thing.
     fn stdout(&mut self) -> Self::Stdout {
         self.stdout.take().unwrap()
     }
 
+    // Always succeeds.
     fn wait_with_output(self) -> io::Result<Self::Output> {
         Ok(self.output)
     }

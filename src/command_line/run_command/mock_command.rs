@@ -7,8 +7,10 @@ use std::ffi::OsStr;
 use std::io;
 use std::process::Stdio;
 
+// Simulates a std::process::Command for testing purposes.
 #[derive(Clone, Eq, PartialEq)]
 pub struct MockCommand {
+    // Records all calls so you can check them later. See methods for the exact text added.
     pub calls: Vec<String>,
 }
 

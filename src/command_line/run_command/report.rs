@@ -9,26 +9,26 @@ use std::sync::Mutex;
 /// `BTreeMap<&str, T>`. Multi-threaded command runners can wrap any type that implements
 /// this trait with `Mutex<_>` to gain access to the implementation of
 /// [ReportInteriorMutable], which calls [Report::report] safely on the inner type.
-pub trait Report<'a, T> {
-    fn report(&mut self, key: &'a str, output: T);
+pub trait Report<K, V> {
+    fn report(&mut self, key: K, output: V);
 }
 
-impl<'a, T> Report<'a, T> for BTreeMap<&'a str, T> {
-    fn report(&mut self, key: &'a str, output: T) {
+impl<K: Ord, V> Report<K, V> for BTreeMap<K, V> {
+    fn report(&mut self, key: K, output: V) {
         self.insert(key, output);
     }
 }
 
 /// Wraps [Report] in an `Mutex<_>` for multi-threaded reporting.
-pub trait ReportInteriorMutable<'a, T> {
-    fn report(&self, key: &'a str, output: T);
+pub trait ReportInteriorMutable<K, V> {
+    fn report(&self, key: K, output: V);
 }
 
-impl<'a, R, T> ReportInteriorMutable<'a, T> for Mutex<R>
+impl<K, R, V> ReportInteriorMutable<K, V> for Mutex<R>
 where
-    R: Report<'a, T>,
+    R: Report<K, V>,
 {
-    fn report(&self, key: &'a str, output: T) {
+    fn report(&self, key: K, output: V) {
         self.lock().unwrap().report(key, output);
     }
 }

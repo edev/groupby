@@ -188,7 +188,7 @@ pub fn run_commands_in_parallel<'a, M, R>(map: &'a M, options: ShellCommandOptio
 where
     M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
     &'a M: IntoParallelIterator<Item = (&'a String, &'a Vec<String>)>,
-    R: Report<'a, Vec<u8>> + Send,
+    R: Report<&'a str, Vec<u8>> + Send,
 {
     let results = Mutex::new(results);
     map.par_iter().for_each(|(key, value)| {
@@ -213,7 +213,7 @@ pub fn run_commands_sequentially<'a, M, R>(
 where
     M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
     &'a M: IntoParallelIterator<Item = (&'a String, &'a Vec<String>)>,
-    R: Report<'a, Vec<u8>>,
+    R: Report<&'a str, Vec<u8>>,
 {
     // For simplicity, we'll match the format to run_commands_in_parallel.
     map.iter().for_each(|(key, value)| {

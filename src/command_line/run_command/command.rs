@@ -1,11 +1,17 @@
+//! The [Command] trait, which allows dependency injection for code that spawns child processes.
+//!
+//! For dependency injection on child process handles spawned by [Command], see [super::child].
 use super::*;
 use std::convert::AsRef;
 use std::ffi::OsStr;
 use std::io;
 use std::process::{self, Stdio};
 
-// Mirrors the way we use std::process::Command. This allows us to use dependency injection in our
-// tests: MockCommand implements Command.
+/// Mirrors the way we use [std::process::Command]. This allows us to use dependency injection in
+/// our tests: MockCommand also implements Command.
+///
+/// Methods of this trait mirror those of [std::process::Command]. See that type for documentation
+/// on the methods listed here.
 pub trait Command {
     type Child: Child;
 

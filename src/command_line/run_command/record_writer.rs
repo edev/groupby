@@ -1,3 +1,4 @@
+//! The [RecordWriter] type, which provides a record-oriented wrapper around a [writer](Write).
 use std::io::{BufWriter, Write};
 
 /// Record-oriented wrapper around a [writer](Write).
@@ -23,11 +24,16 @@ impl<'a, W: Write> RecordWriter<'a, W> {
         RecordWriter { writer, separator }
     }
 
+    /// Writes a single value followed by a separator.
     pub fn write(&mut self, value: &'_ str) {
         self._write(value);
         self.writer.flush().unwrap();
     }
 
+    /// Writes a sequence of values, each followed by a separator.
+    ///
+    /// Because this method calls [BufWriter::flush()] once at the end instead of after each
+    /// separator, it's faster than iterating yourself and calling [write] for each value.
     pub fn write_all<I, S>(&mut self, values: I)
     where
         I: Iterator<Item = &'a S>,
@@ -39,11 +45,13 @@ impl<'a, W: Write> RecordWriter<'a, W> {
         self.writer.flush().unwrap();
     }
 
+    /// Write a value followed by a separator. (Does not flush.)
     fn _write(&mut self, value: &str) {
         self.writer.write_all(value.as_bytes()).unwrap();
         self.writer.write_all(self.separator).unwrap();
     }
 
+    /// Consume self and return the inner [BufWriter].
     pub fn writer(self) -> BufWriter<W> {
         self.writer
     }

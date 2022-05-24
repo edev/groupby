@@ -84,7 +84,6 @@ mod tests {
     use super::*;
     mod process_input {
         use super::*;
-        use crate::command_line::options::*;
         use crate::grouped_collections::fake_map::*;
         use std::io::BufReader;
 

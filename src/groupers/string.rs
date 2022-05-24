@@ -127,9 +127,7 @@ impl<'a> Runner<'a> {
         };
         Runner { run }
     }
-}
 
-impl<'a> Runner<'a> {
     /// Syntactic sugar so you can write `runner.run(value)` instead of `(runner.run)(value)`.
     pub fn run(&mut self, value: String) {
         (self.run)(value);

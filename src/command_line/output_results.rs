@@ -108,13 +108,15 @@ where
         writer.flush().unwrap();
     } else if options.output.only_group_names {
         // Simply output group names.
-        let mut writer = RecordWriter::new(output, line_separator(options).as_bytes());
+        let sep = line_separator(options);
+        let mut writer = RecordWriter::new(output, sep.as_bytes());
         for (key, _) in map.iter() {
             writer.write(key);
         }
     } else {
         // Simply output results directly.
-        let mut writer = RecordWriter::new(output, line_separator(options).as_bytes());
+        let sep = line_separator(options);
+        let mut writer = RecordWriter::new(output, sep.as_bytes());
         for (key, values) in map.iter() {
             let header = format!("{}:", key);
             writer.write(&header);
@@ -124,7 +126,7 @@ where
 }
 
 /// Returns the output line separator specified in `options`.
-fn line_separator(options: &GroupByOptions) -> &str {
+fn line_separator(options: &GroupByOptions) -> String {
     options.output.separator.sep()
 }
 
@@ -167,7 +169,7 @@ pub struct ShellCommandOptions<'a> {
     pub shell_args: Vec<&'a str>,
 
     /// The string that should separate values passed to the command's standard input, e.g. `"\n"`.
-    pub line_separator: &'a str,
+    pub line_separator: String,
 
     /// If true, pass only the group's key followed by `line_separator` via the command's standard
     /// input.
@@ -246,7 +248,7 @@ where
 /// let options = ShellCommandOptions {
 ///     shell: "/usr/bin/bash".to_string(),
 ///     shell_args: vec!["-c", "cat"],
-///     line_separator: "\n",
+///     line_separator: "\n".to_string(),
 ///     only_group_names: false,
 /// };
 ///
@@ -268,7 +270,7 @@ pub fn capture_command_output<'a>(
     let mut handle = run_command::run(
         &options.shell,
         options.shell_args.iter().map(Deref::deref),
-        options.line_separator,
+        &options.line_separator,
     );
 
     // Pass along the group's contents (or name, if output.only_group_names) via stdin.
@@ -296,7 +298,7 @@ mod tests {
             ShellCommandOptions {
                 shell: current_shell(),
                 shell_args: shell_args("cat"),
-                line_separator: "   ",
+                line_separator: "   ".to_string(),
                 only_group_names,
             }
         }

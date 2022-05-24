@@ -84,6 +84,7 @@ impl CommandBuilder {
         self.input_split_options_heading()
             .input_split_on_whitespace()
             .input_split_on_null()
+            .input_split_on_custom()
             .group_input_split_options()
     }
 
@@ -118,13 +119,29 @@ impl CommandBuilder {
         )
     }
 
+    /// Adds an option to split on a custom string.
+    pub fn input_split_on_custom(self) -> Self {
+        build!(
+            self,
+            arg,
+            Arg::new("input_split_on_custom")
+                .long("split")
+                .value_name("delim")
+                .takes_value(true)
+                .help("Split input on a custom delimiter of your choice.")
+        )
+    }
+
     /// Adds the input-splitting options into a group: choose at most one.
     pub fn group_input_split_options(self) -> Self {
         build!(
             self,
             group,
-            ArgGroup::new("input_split")
-                .args(&["input_split_on_whitespace", "input_split_on_null"])
+            ArgGroup::new("input_split").args(&[
+                "input_split_on_whitespace",
+                "input_split_on_null",
+                "input_split_on_custom"
+            ])
         )
     }
 
@@ -331,8 +348,9 @@ OPTIONS:
     -V, --version    Print version information
 
 INPUT-SPLITTING OPTIONS (choose zero or one):
-    -0        Split input by null characters rather than lines.
-    -w        Group words instead of lines; that is, split input on whitespace.
+    -0                     Split input by null characters rather than lines.
+        --split <delim>    Split input on a custom delimiter of your choice.
+    -w                     Group words instead of lines; that is, split input on whitespace.
 
 GROUPERS (choose exactly one):
     -f <n>                   Group by equivalence on the first n characters.
@@ -379,6 +397,9 @@ OPTIONS:
 INPUT-SPLITTING OPTIONS (choose zero or one):
     -0
             Split input by null characters rather than lines.
+
+        --split <delim>
+            Split input on a custom delimiter of your choice.
 
     -w
             Group words instead of lines; that is, split input on whitespace.

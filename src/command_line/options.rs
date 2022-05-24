@@ -11,7 +11,7 @@ use regex::Regex;
 /// Specifies what character to use as a separator between records/tokens.
 ///
 /// This may be used in multiple contexts, e.g. parsing inputs and printing results.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Separator {
     /// Use a newline character (`\n`) as a separator.
     Line,
@@ -21,11 +21,13 @@ pub enum Separator {
 
     /// Use a null separator (`\0`).
     Null,
-    // TODO Consider adding Custom(String)
+
+    /// Use a user-provided string as a separator.
+    Custom(String),
 }
 
 /// Options for handling program input.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InputOptions {
     /// Specifies what type of separator to look for when parsing records.
     pub separator: Separator,
@@ -88,11 +90,12 @@ impl Separator {
     /// assert_eq!(Separator::Space.sep(), " ");
     /// assert_eq!(Separator::Null.sep(), "\0");
     /// ```
-    pub fn sep(&self) -> &'static str {
+    pub fn sep(&self) -> String {
         match self {
-            Separator::Line => "\n",
-            Separator::Space => " ",
-            Separator::Null => "\0",
+            Separator::Line => "\n".to_string(),
+            Separator::Space => " ".to_string(),
+            Separator::Null => "\0".to_string(),
+            Separator::Custom(s) => s.clone(),
         }
     }
 }

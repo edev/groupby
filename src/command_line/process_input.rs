@@ -29,14 +29,17 @@
 //! assert_eq!(map.get(&"w".to_string()), Some(&vec!["words".to_string()]));
 //! ```
 
-// TODO Use Rayon (?) to provide a parallel input processing function.
-
 use crate::command_line::options::*;
 use crate::grouped_collections::GroupedCollection;
 use crate::groupers::string::Runner;
 use std::io::BufRead;
 
 /// Single-threaded input processing.
+///
+/// Based on preliminary benchmarking, single-threaded input processing appears to be about twice
+/// as fast as multi-threaded input processing, perhaps because of the small and frequent locking
+/// and unlocking of mutexes. Therefore, we do not provide a multi-threaded equivalent to
+/// `process_input`.
 pub fn process_input<I, Map>(input: I, map: &mut Map, options: &GroupByOptions)
 where
     I: BufRead,

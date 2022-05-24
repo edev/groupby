@@ -77,6 +77,26 @@ pub struct GroupByOptions {
     pub output: OutputOptions,
 }
 
+impl Separator {
+    /// Returns a static str separator that corresponds to the enum variant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use groupby::command_line::options::Separator;
+    /// assert_eq!(Separator::Line.sep(), "\n");
+    /// assert_eq!(Separator::Space.sep(), " ");
+    /// assert_eq!(Separator::Null.sep(), "\0");
+    /// ```
+    pub fn sep(&self) -> &'static str {
+        match self {
+            Separator::Line => "\n",
+            Separator::Space => " ",
+            Separator::Null => "\0",
+        }
+    }
+}
+
 /// We can't derive PartialEq and Eq for GroupingSpecifier because Regex is not PartialEq
 /// or Eq, so we manually implement them with the following definitions:
 ///

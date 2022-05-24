@@ -40,7 +40,7 @@ use std::io::BufRead;
 /// as fast as multi-threaded input processing, perhaps because of the small and frequent locking
 /// and unlocking of mutexes. Therefore, we do not provide a multi-threaded equivalent to
 /// `process_input`.
-pub fn process_input<I, Map>(input: I, map: &mut Map, options: &GroupByOptions)
+pub fn process_input<I, Map>(mut input: I, map: &mut Map, options: &GroupByOptions)
 where
     I: BufRead,
     Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
@@ -77,6 +77,20 @@ where
             for line in input.lines() {
                 let line = line.unwrap();
                 runner.run(line.clone());
+            }
+        }
+        Separator::Custom(ref s) => {
+            // Split on custom delimiter s.
+            //
+            // The rest of the library isn't written around streaming, so we won't worry about
+            // using a string buffer here to store everything. We'll do things the simple and
+            // obviously correct way rather than trying to get fancy. If benchmarks show it's too
+            // slow or design goals change, we can rewrite it with something more advanced.
+
+            let mut buffer = String::new();
+            input.read_to_string(&mut buffer).unwrap();
+            for token in buffer.split(s) {
+                runner.run(token.to_string());
             }
         }
     }
@@ -145,6 +159,21 @@ mod tests {
                 Separator::Null,
                 "1\02\03\04",
                 vec!["1:1", "2:2", "3:3", "4:4"],
+            );
+        }
+
+        #[test]
+        fn works_with_custom_separators() {
+            works_with(
+                Separator::Custom("Z".to_string()),
+                "AZBZC",
+                vec!["A:A", "B:B", "C:C"],
+            );
+
+            works_with(
+                Separator::Custom(";\tE>".to_string()),
+                "A;\tE>B;\tE>C",
+                vec!["A:A", "B:B", "C:C"],
             );
         }
     }

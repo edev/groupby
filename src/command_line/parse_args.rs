@@ -22,6 +22,12 @@ where
             Separator::Space
         } else if matches.is_present("input_split_on_null") {
             Separator::Null
+        } else if matches.is_present("input_split_on_custom") {
+            let s = matches
+                .value_of("input_split_on_custom")
+                .unwrap()
+                .to_string();
+            Separator::Custom(s)
         } else {
             Separator::Line
         },
@@ -150,6 +156,18 @@ mod tests {
                 Separator::Null,
             );
             // No long option
+        }
+
+        #[test]
+        fn parses_input_split_on_custom() {
+            // No short option
+
+            // Long
+            parses(
+                &vec!["app", "--split", "ZyX", "-f1"],
+                |gbo: GroupByOptions| gbo.input.separator,
+                Separator::Custom("ZyX".to_string()),
+            );
         }
 
         #[test]

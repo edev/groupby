@@ -62,8 +62,13 @@ pub struct OutputOptions {
     /// If `Some`, pass each group to the command string as its stdin instead of printing
     /// the group's contents. Instead, print any output from the command under the
     /// group's header.
-    // TODO Improve the documentation on this feature, e.g. shell invocation and
-    // interaction with only_group_names.
+    ///
+    /// If the user specifies this option, all other members of this struct apply to the command
+    /// invocations instead of the final output; the final output should use default options. This
+    /// is for sanity as well as generality: it might make sense to provide input to a program in
+    /// an easy-to-parse, hard-to-read way (such as Separator::Null), but the final output should
+    /// be tailored for human consumption. If a need arises, we can add an option or set of options
+    /// to accommodate specific final output requirements for program output.
     pub run_command: Option<String>,
 }
 

@@ -43,7 +43,7 @@
 //! [OutputOptions]: crate::command_line::options::OutputOptions
 
 use crate::command_line::run_command::{self, *};
-use crate::command_line::GroupByOptions;
+use crate::command_line::{GroupByOptions, RecordWriter};
 use crate::grouped_collections::GroupedCollection;
 use rayon::prelude::*;
 use std::collections::BTreeMap;

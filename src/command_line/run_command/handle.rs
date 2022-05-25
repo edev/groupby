@@ -1,5 +1,6 @@
 //! A high-level handle for a command started through [super::run::run()].
 use super::*;
+use crate::command_line::record_writer::RecordWriter;
 use std::io;
 
 /// A handle for a command started through [super::run::run()].

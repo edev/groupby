@@ -1,5 +1,8 @@
 //! Toolkit for building command-line applications that use this library.
 //!
+//! This module re-exports the types and functions that form the top-level module API. For basic
+//! use, simply import this module, e.g. `use groupby::command_line`.
+//!
 //! # Examples
 //!
 //! The [groupby] binary offers a simple map of the top-level API for this module. If you need

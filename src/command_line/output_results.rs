@@ -3,7 +3,8 @@
 //! # Examples
 //!
 //! ```
-//! use groupby::command_line::*;
+//! use groupby::command_line;
+//! use groupby::command_line::options::*;
 //! use groupby::command_line::output_results::output_results;
 //! use groupby::grouped_collections::GroupedCollection;
 //! use std::collections::BTreeMap;
@@ -29,7 +30,7 @@
 //!     }
 //! };
 //!
-//! output_results(&mut output, &map, &options);
+//! command_line::output_results(&mut output, &map, &options);
 //!
 //! let expected = "seasons:\n\
 //!     winter\n\

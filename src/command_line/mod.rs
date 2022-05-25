@@ -18,5 +18,7 @@ pub mod run_command;
 
 pub use args::{args, command};
 pub use options::*;
+pub use output_results::output_results;
 pub use parse_args::parse;
+pub use process_input::process_input;
 pub use record_writer::RecordWriter;

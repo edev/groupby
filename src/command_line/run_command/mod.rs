@@ -3,7 +3,7 @@
 //! This module provides support for running a shell command over a group of values. The purpose of
 //! this module is to provide tested, reusable functions and types to support such workflows.
 //!
-//! The [super::output_results] module is the chief internal consumer for the types and functions
+//! The [mod@super::output_results] module is the chief internal consumer for the types and functions
 //! defined here. It provides higher-level code to iterate over a [GroupedCollection], run commands
 //! if needed, and ultimately output the results.
 //!

@@ -308,8 +308,16 @@ impl CommandBuilder {
                     "Execute command cmd for each group, passing the group via standard input."
                 )
                 .long_help(
-                    "Execute command cmd for each group, passing the group via standard input, one \
-                    match per line."
+                    "Execute cmd as a shell command for each group, passing the group via standard \
+                    input, one match per line. Each command runs as a command in the shell \
+                    specified by the SHELL variable, just as if you had written $SHELL -c \"cmd\".
+                    \n\
+                    When you use this option, other output options affect the way each group is \
+                    passed to a command's standard input, and groupby ignores output options when \
+                    printing those commands' outputs.\n\
+                    \n\
+                    The commands are run in parallel and may run in arbitrary order. The commands' \
+                    outputs are printed in order by group name."
                 )
         )
     }
@@ -426,8 +434,16 @@ OUTPUT SEPARATOR OPTIONS (choose zero or one):
 
 GENERAL OUTPUT OPTIONS:
     -c <cmd>
-            Execute command cmd for each group, passing the group via standard input, one match per
-            line.
+            Execute cmd as a shell command for each group, passing the group via standard input, one
+            match per line. Each command runs as a command in the shell specified by the SHELL
+            variable, just as if you had written $SHELL -c \"cmd\".
+            
+            When you use this option, other output options affect the way each group is passed to a
+            command's standard input, and groupby ignores output options when printing those
+            commands' outputs.
+            
+            The commands are run in parallel and may run in arbitrary order. The commands' outputs
+            are printed in order by group name.
 
         --matches
             Instead of outputting lines, output the matched text that forms each group.\n",

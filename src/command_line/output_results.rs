@@ -145,7 +145,6 @@ fn current_shell() -> String {
 ///
 /// Note that this function is not smart in any way; it simply assumes that the shell accepts a
 /// `-c` argument followed by an argument containing a command string to interpret.
-// TODO Add a command-line option to specify the exact shell invocation?
 fn shell_args(cmd: &str) -> Vec<&str> {
     vec!["-c", cmd]
 }

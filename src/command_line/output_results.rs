@@ -48,7 +48,7 @@ use crate::command_line::{GroupByOptions, RecordWriter};
 use crate::grouped_collections::GroupedCollection;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
-use std::io::{BufWriter, Write};
+use std::io::Write;
 use std::ops::Deref;
 use std::sync::Mutex;
 
@@ -92,21 +92,12 @@ where
         // isn't currently an option anywhere in the crate.
         const SEPARATOR: &str = "\n";
 
-        let mut writer = BufWriter::new(output);
-        if options.output.only_group_names {
-            for key in results.keys() {
-                writer.write_all(key.as_bytes()).unwrap();
-                writer.write_all(SEPARATOR.as_bytes()).unwrap();
-            }
-        } else {
-            let header_separator = format!(":{}", SEPARATOR);
-            for (key, value) in results.iter() {
-                writer.write_all(key.as_bytes()).unwrap();
-                writer.write_all(header_separator.as_bytes()).unwrap();
-                writer.write_all(value).unwrap();
-            }
+        let mut writer = RecordWriter::new(output, SEPARATOR.as_bytes());
+        for (key, value) in results.iter() {
+            let header = format!("{}:", key);
+            writer.write(&header);
+            writer.write(&String::from_utf8_lossy(value));
         }
-        writer.flush().unwrap();
     } else if options.output.only_group_names {
         // Simply output group names.
         let sep = line_separator(options);
@@ -370,7 +361,7 @@ mod tests {
                     let options = options_for(Some(String::from("cat")), true);
                     let map = map();
 
-                    let expected: Vec<u8> = b"Cats\nDogs\n".to_vec();
+                    let expected: Vec<u8> = b"Cats:\nCats\n\nDogs:\nDogs\n\n".to_vec();
                     output_results(&mut output, &map, &options);
                     assert_eq!(
                         String::from_utf8_lossy(&expected),
@@ -390,7 +381,7 @@ mod tests {
                     let map = map();
 
                     let expected: Vec<u8> =
-                        b"Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_vec();
+                        b"Cats:\nMeowser\nMittens\n\nDogs:\nLassy\nBuddy\n\n".to_vec();
                     output_results(&mut output, &map, &options);
                     assert_eq!(
                         String::from_utf8_lossy(&expected),

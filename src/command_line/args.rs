@@ -151,6 +151,7 @@ impl CommandBuilder {
             .group_by_first_chars()
             .group_by_last_chars()
             .group_by_regex()
+            .group_by_file_extension()
             .group_groupers()
     }
 
@@ -204,6 +205,25 @@ impl CommandBuilder {
         )
     }
 
+    /// Adds an option to specify the [crate::groupers::string::Groupers::group_by_file_extension]
+    /// grouper.
+    pub fn group_by_file_extension(self) -> Self {
+        build!(
+            self,
+            arg,
+            Arg::new("group_by_file_extension")
+                .long("extension")
+                .help("Group by file extension (excluding the leading period).")
+                .long_help(
+                    "Group by file extension (excluding the leading period). Files with multiple \
+                    extensions will match the last extension, e.g. foo.tar.gz will match \"gz\". \
+                    Files with only a leading period are considered not to have an extension. So \
+                    are files ending in a period. If you need a different definition of a file \
+                    extension, please consider using --regex."
+                )
+        )
+    }
+
     /// Adds the grouper choices into a group: choose exactly one.
     pub fn group_groupers(self) -> Self {
         build!(
@@ -213,7 +233,8 @@ impl CommandBuilder {
                 .args(&[
                     "group_by_first_chars",
                     "group_by_last_chars",
-                    "group_by_regex"
+                    "group_by_regex",
+                    "group_by_file_extension"
                 ])
                 .required(true)
         )
@@ -349,7 +370,7 @@ Reads lines from standard input and groups them by common substrings. By default
 resulting groups to standard output.
 
 USAGE:
-    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>>
+    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>|--extension>
 
 OPTIONS:
     -h, --help       Print help information
@@ -361,6 +382,7 @@ INPUT-SPLITTING OPTIONS (choose zero or one):
     -w                     Group words instead of lines; that is, split input on whitespace.
 
 GROUPERS (choose exactly one):
+        --extension          Group by file extension (excluding the leading period).
     -f <n>                   Group by equivalence on the first n characters.
     -l <n>                   Group by equivalence on the last n characters.
     -r, --regex <pattern>    Group by equivalence on the first match against the specified pattern.
@@ -393,7 +415,7 @@ Reads lines from standard input and groups them by common substrings. By default
 resulting groups to standard output.
 
 USAGE:
-    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>>
+    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>|--extension>
 
 OPTIONS:
     -h, --help
@@ -413,6 +435,12 @@ INPUT-SPLITTING OPTIONS (choose zero or one):
             Group words instead of lines; that is, split input on whitespace.
 
 GROUPERS (choose exactly one):
+        --extension
+            Group by file extension (excluding the leading period). Files with multiple extensions
+            will match the last extension, e.g. foo.tar.gz will match \"gz\". Files with only a
+            leading period are considered not to have an extension. So are files ending in a period.
+            If you need a different definition of a file extension, please consider using --regex.
+
     -f <n>
             Group by equivalence on the first n characters.
 

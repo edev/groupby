@@ -88,7 +88,9 @@ pub fn match_regex<'a, 'b>(string: &'a str, regex: &'b Regex) -> Option<&'a str>
 ///
 /// Files with no extension will yield `None`.
 ///
-/// Files starting or ending in a period will yield `None`.
+/// Files that start with a period and have no other periods will yield `None`.
+///
+/// Files that end with a period will yield `None` (and may be illegal on the local filesystem).
 ///
 /// If you need a different definition of a file extension for your matcher, consider using
 /// [match_regex] instead.
@@ -100,7 +102,9 @@ pub fn match_regex<'a, 'b>(string: &'a str, regex: &'b Regex) -> Option<&'a str>
 ///
 /// assert_eq!(Some("txt"), string::match_file_extension("some.file.of.mine.txt"));
 /// assert_eq!(Some("gz"), string::match_file_extension("an archive.tar.gz"));
+/// assert_eq!(Some("gz"), string::match_file_extension(".hidden.gz"));
 /// assert_eq!(None, string::match_file_extension("Gemfile"));
+/// assert_eq!(None, string::match_file_extension(".bashrc"));
 /// assert_eq!(None, string::match_file_extension(".bashrc"));
 /// assert_eq!(None, string::match_file_extension("probably illegal."));
 /// ```

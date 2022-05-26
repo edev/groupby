@@ -156,6 +156,7 @@ impl<'a> Runner<'a> {
             GroupingSpecifier::FirstChars(n) => Box::new(move |s| map.group_by_first_chars(s, *n)),
             GroupingSpecifier::LastChars(n) => Box::new(move |s| map.group_by_last_chars(s, *n)),
             GroupingSpecifier::Regex(re) => Box::new(move |s| map.group_by_regex(s, re)),
+            GroupingSpecifier::FileExtension => Box::new(move |s| map.group_by_file_extension(s)),
         };
         Runner { run }
     }

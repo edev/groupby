@@ -45,6 +45,9 @@ pub enum GroupingSpecifier {
     /// Group by the provided regular expression. See [crate::matchers::string::match_regex] for
     /// details.
     Regex(Regex),
+
+    /// Group by file extension. See [crate::matchers::string::match_file_extension] for details.
+    FileExtension,
 }
 
 // For ease of use implementing PartialEq below.
@@ -124,6 +127,7 @@ impl Separator {
 ///     Regex(regex::Regex::new("foo").unwrap()),
 ///     Regex(regex::Regex::new("foo").unwrap())
 /// );
+/// assert_eq!(FileExtension, FileExtension);
 ///
 /// assert_ne!(FirstChars(7), FirstChars(8));
 /// assert_ne!(LastChars(8), LastChars(9));
@@ -138,6 +142,7 @@ impl Separator {
 ///     Regex(regex::Regex::new("foo").unwrap()),
 ///     LastChars(9)
 /// );
+/// assert_ne!(FirstChars(7), FileExtension);
 /// ```
 impl PartialEq for GroupingSpecifier {
     fn eq(&self, other: &Self) -> bool {
@@ -154,6 +159,7 @@ impl PartialEq for GroupingSpecifier {
                 Regex(re2) => re1.as_str() == re2.as_str(),
                 _ => false,
             },
+            FileExtension => matches!(other, FileExtension),
         }
     }
 }

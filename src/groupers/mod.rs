@@ -44,5 +44,47 @@
 //! [GroupedCollection]: crate::grouped_collections::GroupedCollection
 //! [matcher]: crate::matchers
 //! [matchers]: crate::matchers
+//!
+//! # For contributors: adding groupers
+//!
+//! Adding a grouper is deliberately simple and straightforward. To add a string grouper that you
+//! expose to the user in the [groupby] binary, plan to spend around two hours. The steps are as
+//! follows:
+//!
+//! 1. Add a [matcher], following the examples of the existing matchers. This will often be
+//!    trivial. Remember to add documentation and tests, preferably as doctests. (You might find
+//!    that you can reuse an existing matcher, but these cases are probably rare.)
+//!
+//! 1. Add a corresponding grouper, following the examples of the existing groupers. For String
+//!    groupers, add your method to [Groupers] and [Runner]. (At time of writing, there are only
+//!    String groupers. If you're adding the the first non-String grouper, please exercise your
+//!    best judgement in designing the module and update the documentation here accordingly.)
+//!    Remember to add documentation and tests, preferably as doctests.
+//!
+//! 1. For String groupers, you'll probably want to expand the command-line application. (If not,
+//!    please justify this decision in your pull request.) To add your grouper:
+//!
+//!    1. Add a new command-line option as a method in [CommandBuilder]. Add your method to
+//!       [grouping_options()] and [group_groupers()]. Remember to add documentation and update
+//!       unit tests. Your new option won't do anything, yet.
+//!
+//!    1. Add an appropriate option to [GroupingSpecifier]. Remember to document it! The compiler will
+//!       point out the locations you need to modify to support the new option. Check the existing
+//!       unit tests and add new tests as appropriate.
+//!
+//!    1. For sanity's sake, once all tests pass and you think you're done, make sure the
+//!       command-line option actually works, e.g. `cargo run -- <options>`.
+//!
+//! 1. Update any other relevant documentation, code, or tests, using your best judgement.
+//!
+//! [args]: mod@crate::command_line::args
+//! [CommandBuilder]: crate::command_line::args::CommandBuilder
+//! [group_groupers()]: crate::command_line::args::CommandBuilder::group_groupers
+//! [groupby]: https://github.com/edev/groupby/tree/master/src/bin/groupby.rs
+//! [GroupByOptions]: crate::command_line::options::GroupByOptions
+//! [Groupers]: string::Groupers
+//! [grouping_options()]: crate::command_line::args::CommandBuilder::grouping_options
+//! [GroupingSpecifier]: crate::command_line::options::GroupingSpecifier
+//! [Runner]: string::Runner
 
 pub mod string;

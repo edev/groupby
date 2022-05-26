@@ -43,6 +43,8 @@ where
     } else if matches.is_present("group_by_regex") {
         let re = parse_regex_value(&matches, "group_by_regex");
         GroupingSpecifier::Regex(re)
+    } else if matches.is_present("group_by_file_extension") {
+        GroupingSpecifier::FileExtension
     } else {
         panic!(
             "No grouping option was specified, but the argument parser didn't catch \
@@ -218,10 +220,22 @@ mod tests {
         }
 
         #[test]
+        fn parses_group_by_file_extension() {
+            // No short option
+
+            // Long
+            parses(
+                &vec!["app", "-w", "--extension"],
+                |gbo: GroupByOptions| gbo.grouping,
+                GroupingSpecifier::FileExtension,
+            );
+        }
+
+        #[test]
         fn parses_output_null_separators() {
             // No short option
 
-            // Long option
+            // Long
             parses(
                 &vec!["app", "--print0", "-f1"],
                 |gbo: GroupByOptions| gbo.output.separator,

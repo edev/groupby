@@ -33,6 +33,17 @@ where
         },
     };
 
+    // Dummy match statement. If you're seeing an error here, you probably just added a Separator
+    // variant. This error is meant to remind you to add logic for your new separator to the block
+    // just above this comment (if appropriate). Otherwise, command-line arguments won't actually
+    // translate into GroupByOptions, even though all tests might very well pass!
+    match Separator::Space {
+        Separator::Space => (),
+        Separator::Null => (),
+        Separator::Custom(_) => (),
+        Separator::Line => (),
+    };
+
     // Parse grouping specifier.
     let grouping = if matches.is_present("group_by_first_chars") {
         let n = parse_numeric_value(&matches, "group_by_first_chars");
@@ -50,6 +61,17 @@ where
             "No grouping option was specified, but the argument parser didn't catch \
             the issue. Please report this!"
         );
+    };
+
+    // Dummy match statement. If you're seeing an error here, you probably just added a
+    // GroupingSpecifier variant. This error is meant to remind you to add logic for your new
+    // grouping specifier to the block just above this comment. Otherwise, command-line arguments
+    // won't actually translate into GroupByOptions, even though all tests might very well pass!
+    match GroupingSpecifier::FirstChars(4) {
+        GroupingSpecifier::FirstChars(_) => (),
+        GroupingSpecifier::LastChars(_) => (),
+        GroupingSpecifier::Regex(_) => (),
+        GroupingSpecifier::FileExtension => (),
     };
 
     // Parse output options. The nested scope prevents name confusion with nested options.
@@ -76,6 +98,17 @@ where
             run_command,
         };
     }
+
+    // Dummy match statement. If you're seeing an error here, you probably just added a Separator
+    // variant. This error is meant to remind you to add logic for your new separator to the block
+    // just above this comment (if appropriate). Otherwise, command-line arguments won't actually
+    // translate into GroupByOptions, even though all tests might very well pass!
+    match Separator::Space {
+        Separator::Space => (),
+        Separator::Null => (),
+        Separator::Custom(_) => (),
+        Separator::Line => (),
+    };
 
     GroupByOptions {
         input,

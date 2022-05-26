@@ -82,8 +82,38 @@ pub fn match_regex<'a, 'b>(string: &'a str, regex: &'b Regex) -> Option<&'a str>
     }
 }
 
+/// Returns the characters after the last period in the string, if any. Doesn't match dotfiles.
+///
+/// Files with compound file extensions like `.tar.gz` will only match the last extension.
+///
+/// Files with no extension will yield `None`.
+///
+/// Files starting or ending in a period will yield `None`.
+///
+/// If you need a different definition of a file extension for your matcher, consider using
+/// [match_regex] instead.
+///
+/// # Examples
+///
+/// ```
+/// use groupby::matchers::string;
+///
+/// assert_eq!(Some("txt"), string::match_file_extension("some.file.of.mine.txt"));
+/// assert_eq!(Some("gz"), string::match_file_extension("an archive.tar.gz"));
+/// assert_eq!(None, string::match_file_extension("Gemfile"));
+/// assert_eq!(None, string::match_file_extension(".bashrc"));
+/// assert_eq!(None, string::match_file_extension("probably illegal."));
+/// ```
+pub fn match_file_extension(filename: &str) -> Option<&str> {
+    match filename.rfind('.') {
+        Some(0) => None,
+        Some(i) if i >= filename.len() - 1 => None,
+        Some(i) => filename.get((i + 1)..),
+        None => None,
+    }
+}
+
 // TODO Add matcher: first n words
 // TODO Add matcher: last n words
-// TODO Add matcher: file extension
 // TODO Add matcher: nth word
 // TODO Add matcher: nth regex capture group (for more complex scenarios with existing regex)

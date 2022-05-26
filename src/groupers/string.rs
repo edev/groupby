@@ -45,7 +45,7 @@ pub trait Groupers<List> {
 
     /// Groups a String according to the provided Regex and adds it to the collection.
     ///
-    /// See `match_regex` for details on how the key is determined.
+    /// See [match_regex] for details on how the key is determined.
     ///
     /// # Examples
     ///

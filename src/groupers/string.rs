@@ -63,6 +63,33 @@ pub trait Groupers<List> {
     /// assert_eq!(Some(&expected), map.get(&"99".to_string()));
     /// ```
     fn group_by_regex(&mut self, line: String, regex: &Regex);
+
+    /// Groups a filename string by its extension.
+    ///
+    /// See [match_file_extension] for details on how file extensions are matched.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use groupby::grouped_collections::*;
+    /// use groupby::groupers::string::Groupers;
+    /// use std::collections::BTreeMap;
+    ///
+    /// let expected_gz = vec!["foo.tar.gz".to_string(), "bar.gz".to_string()];
+    /// let expected_none = vec!["my_file".to_string(), ".zshrc".to_string()];
+    ///
+    /// let mut map = BTreeMap::new();
+    /// for s in &expected_gz {
+    ///     map.group_by_file_extension(s.clone());
+    /// }
+    /// for s in &expected_none {
+    ///     map.group_by_file_extension(s.clone());
+    /// }
+    ///
+    /// assert_eq!(Some(&expected_gz), map.get(&"gz".to_string()));
+    /// assert_eq!(Some(&expected_none), map.get(&"".to_string()));
+    /// ```
+    fn group_by_file_extension(&mut self, filename: String);
 }
 
 impl<'s, List, GC> Groupers<List> for GC
@@ -83,6 +110,11 @@ where
     fn group_by_regex(&mut self, line: String, regex: &Regex) {
         let key = match_regex(&line, regex).unwrap_or("").to_string();
         self.add(key, line);
+    }
+
+    fn group_by_file_extension(&mut self, filename: String) {
+        let key = match_file_extension(&filename).unwrap_or("").to_string();
+        self.add(key, filename);
     }
 }
 

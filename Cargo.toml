@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 clap = { version = "3.1.15", features = ["cargo"] }
+global_counter = { version = "0.2.2", default-features = false }
 num = "0.4"
 rayon = "1.5.3"
 regex = "1"

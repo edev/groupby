@@ -1,4 +1,6 @@
 //! Matchers for [String] values.
+
+use global_counter::primitive::exact::CounterUsize;
 use regex::Regex;
 
 /// Returns the first n characters of a string.
@@ -115,6 +117,23 @@ pub fn match_file_extension(filename: &str) -> Option<&str> {
         Some(i) => filename.get((i + 1)..),
         None => None,
     }
+}
+
+/// Returns the number of times the function has been called before.
+///
+/// Returns the next number from a thread-safe, global counter (starting from 0). This can be used
+/// to provide a unique, stable, and readable key for each item in a collection, for instance.
+///
+/// ```
+/// use groupby::matchers::string;
+///
+/// for i in 0..5 {
+///     assert_eq!(i, string::match_counter());
+/// }
+/// ```
+pub fn match_counter() -> usize {
+    static COUNTER: CounterUsize = CounterUsize::new(0);
+    COUNTER.inc()
 }
 
 // TODO Add matcher: first n words

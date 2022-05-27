@@ -90,6 +90,29 @@ pub trait Groupers<List> {
     /// assert_eq!(Some(&expected_none), map.get(&"".to_string()));
     /// ```
     fn group_by_file_extension(&mut self, filename: String);
+
+    /// Assigns a unique, incremental index to each line provided, starting at 0.
+    ///
+    /// This allows each line to occupy its own group. It uses a thread-safe global counter.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use groupby::grouped_collections::*;
+    /// use groupby::groupers::string::Groupers;
+    /// use std::collections::BTreeMap;
+    ///
+    /// let values = vec!["Zeroth".to_string(), "First".to_string(), "Second".to_string()];
+    /// let mut map = BTreeMap::new();
+    /// for v in &values {
+    ///     map.group_by_counter(v.clone());
+    /// }
+    ///
+    /// for (i, v) in values.iter().enumerate() {
+    ///     assert_eq!(&vec![v.clone()], map.get(&i.to_string()).unwrap());
+    /// }
+    /// ```
+    fn group_by_counter(&mut self, line: String);
 }
 
 impl<'s, List, GC> Groupers<List> for GC
@@ -115,6 +138,11 @@ where
     fn group_by_file_extension(&mut self, filename: String) {
         let key = match_file_extension(&filename).unwrap_or("").to_string();
         self.add(key, filename);
+    }
+
+    fn group_by_counter(&mut self, line: String) {
+        let key = match_counter().to_string();
+        self.add(key, line);
     }
 }
 

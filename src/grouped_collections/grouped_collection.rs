@@ -41,6 +41,13 @@
 ///
 /// For instance, a text-processing function might use `BTreeMap<String, Vec<String>>`.
 ///
+/// The main reason for this trait is to allow us to define generic [groupers](crate::groupers)
+/// over this trait rather than over individual concrete types. For instance, [string groupers] are
+/// implemented on `GroupedCollection<'s, String, String, List>` where `List` is arbitrary (but
+/// should probably be `Vec<String>`).
+///
+/// [string groupers]: crate::groupers::string
+///
 /// # Generic parameters
 ///
 /// - `Key`:   the type used for keys in the mapping data structure.

@@ -140,6 +140,4 @@ pub trait GroupedCollection<'s, Key: 's, Value: 's, List: 's> {
     /// assert_eq!(group, &vec![1, 2]);
     /// ```
     fn iter(&'s self) -> Self::Iter;
-
-    // TODO Add more methods to form a more complete set of actions.
 }

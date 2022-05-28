@@ -87,12 +87,6 @@
 //! 2\n\n");
 //! ```
 
-// TODO Expand documentation here once groupers and matchers are more mature:
-// - Follow the examples of major crates like Rand
-// - Add a description of the major products: GroupedCollection, groupers, matchers...
-// - Add a quickstart
-// - Link to benchmarks
-
 pub mod command_line;
 pub mod grouped_collections;
 pub mod groupers;

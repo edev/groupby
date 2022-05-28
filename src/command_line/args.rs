@@ -152,6 +152,7 @@ impl CommandBuilder {
             .group_by_last_chars()
             .group_by_regex()
             .group_by_file_extension()
+            .group_by_counter()
             .group_groupers()
     }
 
@@ -224,6 +225,23 @@ impl CommandBuilder {
         )
     }
 
+    /// Adds an option to specify the [crate::groupers::string::Groupers::group_by_counter] grouper.
+    pub fn group_by_counter(self) -> Self {
+        build!(
+            self,
+            arg,
+            Arg::new("group_by_counter")
+                .long("counter")
+                .help("Place each token in its own, numbered group, starting from 0.")
+                .long_help(
+                    "Place each token in its own, numbered group, starting from 0. This is useful \
+                    for running a command over every token of input, i.e. acting as a splitter \
+                    filter. When used in this way, note that commands are run in parallel and may \
+                    run in arbitrary order."
+                )
+        )
+    }
+
     /// Adds the grouper choices into a group: choose exactly one.
     pub fn group_groupers(self) -> Self {
         build!(
@@ -234,7 +252,8 @@ impl CommandBuilder {
                     "group_by_first_chars",
                     "group_by_last_chars",
                     "group_by_regex",
-                    "group_by_file_extension"
+                    "group_by_file_extension",
+                    "group_by_counter",
                 ])
                 .required(true)
         )
@@ -370,7 +389,7 @@ Reads lines from standard input and groups them by common substrings. By default
 resulting groups to standard output.
 
 USAGE:
-    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>|--extension>
+    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>|--extension|--counter>
 
 OPTIONS:
     -h, --help       Print help information
@@ -382,6 +401,7 @@ INPUT-SPLITTING OPTIONS (choose zero or one):
     -w                     Group words instead of lines; that is, split input on whitespace.
 
 GROUPERS (choose exactly one):
+        --counter            Place each token in its own, numbered group, starting from 0.
         --extension          Group by file extension (excluding the leading period).
     -f <n>                   Group by equivalence on the first n characters.
     -l <n>                   Group by equivalence on the last n characters.
@@ -415,7 +435,7 @@ Reads lines from standard input and groups them by common substrings. By default
 resulting groups to standard output.
 
 USAGE:
-    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>|--extension>
+    groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>|--extension|--counter>
 
 OPTIONS:
     -h, --help
@@ -435,6 +455,11 @@ INPUT-SPLITTING OPTIONS (choose zero or one):
             Group words instead of lines; that is, split input on whitespace.
 
 GROUPERS (choose exactly one):
+        --counter
+            Place each token in its own, numbered group, starting from 0. This is useful for running
+            a command over every token of input, i.e. acting as a splitter filter. When used in this
+            way, note that commands are run in parallel and may run in arbitrary order.
+
         --extension
             Group by file extension (excluding the leading period). Files with multiple extensions
             will match the last extension, e.g. foo.tar.gz will match \"gz\". Files with only a

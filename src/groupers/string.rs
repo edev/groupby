@@ -232,11 +232,7 @@ mod tests {
 
         #[test]
         fn matches_file_extension() {
-            matches(
-                GroupingSpecifier::FileExtension,
-                "abc.txt",
-                "txt",
-            );
+            matches(GroupingSpecifier::FileExtension, "abc.txt", "txt");
         }
 
         #[test]

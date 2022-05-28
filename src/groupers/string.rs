@@ -230,7 +230,14 @@ mod tests {
             );
         }
 
-        // TODO Add missing test: matches_file_extension
+        #[test]
+        fn matches_file_extension() {
+            matches(
+                GroupingSpecifier::FileExtension,
+                "abc.txt",
+                "txt",
+            );
+        }
 
         #[test]
         fn matches_counter() {

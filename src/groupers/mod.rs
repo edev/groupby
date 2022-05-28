@@ -56,7 +56,7 @@
 //!    that you can reuse an existing matcher, but these cases are probably rare.)
 //!
 //! 1. Add a corresponding grouper, following the examples of the existing groupers. For String
-//!    groupers, add your method to [Groupers] and [Runner]. (At time of writing, there are only
+//!    groupers, add your method to [Groupers]. (At time of writing, there are only
 //!    String groupers. If you're adding the the first non-String grouper, please exercise your
 //!    best judgement in designing the module and update the documentation here accordingly.)
 //!    Remember to add documentation and tests, preferably as doctests.
@@ -66,7 +66,9 @@
 //!
 //!    1. Add a new command-line option as a method in [CommandBuilder]. Add your method to
 //!       [grouping_options()] and [group_groupers()]. Remember to add documentation and update
-//!       unit tests. Your new option won't do anything, yet.
+//!       unit tests. Your new option won't do anything, yet. (If you try to use it, it should
+//!       panic, saying, "No grouping option was specified, but the argument parser didn't catch
+//!       the issue. Please report this!")
 //!
 //!    1. Add an appropriate option to [GroupingSpecifier]. Remember to document it! The compiler will
 //!       point out the locations you need to modify to support the new option. Check the existing

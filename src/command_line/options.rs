@@ -48,6 +48,9 @@ pub enum GroupingSpecifier {
 
     /// Group by file extension. See [crate::matchers::string::match_file_extension] for details.
     FileExtension,
+
+    /// Group by counter. See [crate::matchers::string::match_counter] for details.
+    Counter,
 }
 
 // For ease of use implementing PartialEq below.
@@ -121,6 +124,7 @@ impl Separator {
 /// use groupby::command_line::options::GroupingSpecifier::*;
 /// use regex;
 ///
+/// // Same == same.
 /// assert_eq!(FirstChars(7), FirstChars(7));
 /// assert_eq!(LastChars(8), LastChars(8));
 /// assert_eq!(
@@ -128,7 +132,9 @@ impl Separator {
 ///     Regex(regex::Regex::new("foo").unwrap())
 /// );
 /// assert_eq!(FileExtension, FileExtension);
+/// assert_eq!(Counter, Counter);
 ///
+/// // Same variant with different contained values are !=.
 /// assert_ne!(FirstChars(7), FirstChars(8));
 /// assert_ne!(LastChars(8), LastChars(9));
 /// assert_ne!(
@@ -136,6 +142,7 @@ impl Separator {
 ///     Regex(regex::Regex::new("bar").unwrap())
 /// );
 ///
+/// // Different variants are !=.
 /// assert_ne!(FirstChars(7), Regex(regex::Regex::new("bar").unwrap()));
 /// assert_ne!(LastChars(8), FirstChars(8));
 /// assert_ne!(
@@ -143,6 +150,7 @@ impl Separator {
 ///     LastChars(9)
 /// );
 /// assert_ne!(FirstChars(7), FileExtension);
+/// assert_ne!(FileExtension, Counter);
 /// ```
 impl PartialEq for GroupingSpecifier {
     fn eq(&self, other: &Self) -> bool {
@@ -160,6 +168,7 @@ impl PartialEq for GroupingSpecifier {
                 _ => false,
             },
             FileExtension => matches!(other, FileExtension),
+            Counter => matches!(other, Counter),
         }
     }
 }

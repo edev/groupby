@@ -185,6 +185,7 @@ impl<'a> Runner<'a> {
             GroupingSpecifier::LastChars(n) => Box::new(move |s| map.group_by_last_chars(s, *n)),
             GroupingSpecifier::Regex(re) => Box::new(move |s| map.group_by_regex(s, re)),
             GroupingSpecifier::FileExtension => Box::new(move |s| map.group_by_file_extension(s)),
+            GroupingSpecifier::Counter => Box::new(move |s| map.group_by_counter(s)),
         };
         Runner { run }
     }
@@ -227,6 +228,15 @@ mod tests {
                 "abc",
                 "b",
             );
+        }
+
+        // TODO Add missing test: matches_file_extension
+
+        #[test]
+        fn matches_counter() {
+            matches(GroupingSpecifier::Counter, "abc", "0");
+            matches(GroupingSpecifier::Counter, "abc", "1");
+            matches(GroupingSpecifier::Counter, "abc", "2");
         }
     }
 }

@@ -56,6 +56,8 @@ where
         GroupingSpecifier::Regex(re)
     } else if matches.is_present("group_by_file_extension") {
         GroupingSpecifier::FileExtension
+    } else if matches.is_present("group_by_counter") {
+        GroupingSpecifier::Counter
     } else {
         panic!(
             "No grouping option was specified, but the argument parser didn't catch \
@@ -72,6 +74,7 @@ where
         GroupingSpecifier::LastChars(_) => (),
         GroupingSpecifier::Regex(_) => (),
         GroupingSpecifier::FileExtension => (),
+        GroupingSpecifier::Counter => (),
     };
 
     // Parse output options. The nested scope prevents name confusion with nested options.
@@ -261,6 +264,18 @@ mod tests {
                 &vec!["app", "-w", "--extension"],
                 |gbo: GroupByOptions| gbo.grouping,
                 GroupingSpecifier::FileExtension,
+            );
+        }
+
+        #[test]
+        fn parses_group_by_counter() {
+            // No short option
+
+            // Long
+            parses(
+                &vec!["app", "-w", "--counter"],
+                |gbo: GroupByOptions| gbo.grouping,
+                GroupingSpecifier::Counter,
             );
         }
 

@@ -135,8 +135,3 @@ pub fn match_counter() -> usize {
     static COUNTER: CounterUsize = CounterUsize::new(0);
     COUNTER.inc()
 }
-
-// TODO Add matcher: first n words
-// TODO Add matcher: last n words
-// TODO Add matcher: nth word
-// TODO Add matcher: nth regex capture group (for more complex scenarios with existing regex)

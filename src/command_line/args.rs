@@ -236,8 +236,7 @@ impl CommandBuilder {
                 .long_help(
                     "Place each token in its own, numbered group, starting from 0. This is useful \
                     for running a command over every token of input, i.e. acting as a splitter \
-                    filter. When used in this way, note that commands are run in parallel and may \
-                    run in arbitrary order."
+                    filter."
                 )
         )
     }
@@ -457,8 +456,7 @@ INPUT-SPLITTING OPTIONS (choose zero or one):
 GROUPERS (choose exactly one):
         --counter
             Place each token in its own, numbered group, starting from 0. This is useful for running
-            a command over every token of input, i.e. acting as a splitter filter. When used in this
-            way, note that commands are run in parallel and may run in arbitrary order.
+            a command over every token of input, i.e. acting as a splitter filter.
 
         --extension
             Group by file extension (excluding the leading period). Files with multiple extensions

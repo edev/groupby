@@ -75,7 +75,23 @@ impl CommandBuilder {
             self,
             about,
             "\nReads lines from standard input and groups them by common substrings. By default, \
-            prints the resulting groups to standard output."
+            prints the resulting groups to standard output.\n\
+            \n\
+            For example, to group lines in a structured log file by the first 10 characters:
+
+    groupby -f 10 < foo.log\n\
+            \n\
+            Much more complex use cases are also supported. For instance, to group files in \
+            ~/Pictures by file extension (case-sensitive) and print how much disk space each type \
+            of file is using:
+
+    find ~/Pictures/ -not -type d -print0 \\
+        | groupby -- -0 --extension --print0 -c \"xargs -0 du -ch | tail -n1\"\n\
+            \n\
+            Note: the lack of an option to group by the first or last n words is an intional \
+            omission. There are many ways to define a word, and when grouping by words, the exact \
+            definition matters. To match based on words, please use --regex and supply a \
+            definition that works for your use case."
         )
     }
 
@@ -387,6 +403,20 @@ Dylan Laufenberg <dylan.laufenberg@gmail.com>
 Reads lines from standard input and groups them by common substrings. By default, prints the
 resulting groups to standard output.
 
+For example, to group lines in a structured log file by the first 10 characters:
+
+    groupby -f 10 < foo.log
+
+Much more complex use cases are also supported. For instance, to group files in ~/Pictures by file
+extension (case-sensitive) and print how much disk space each type of file is using:
+
+    find ~/Pictures/ -not -type d -print0 \\
+        | groupby -- -0 --extension --print0 -c \"xargs -0 du -ch | tail -n1\"
+
+Note: the lack of an option to group by the first or last n words is an intional omission. There are
+many ways to define a word, and when grouping by words, the exact definition matters. To match based
+on words, please use --regex and supply a definition that works for your use case.
+
 USAGE:
     groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>|--extension|--counter>
 
@@ -432,6 +462,20 @@ Dylan Laufenberg <dylan.laufenberg@gmail.com>
 
 Reads lines from standard input and groups them by common substrings. By default, prints the
 resulting groups to standard output.
+
+For example, to group lines in a structured log file by the first 10 characters:
+
+    groupby -f 10 < foo.log
+
+Much more complex use cases are also supported. For instance, to group files in ~/Pictures by file
+extension (case-sensitive) and print how much disk space each type of file is using:
+
+    find ~/Pictures/ -not -type d -print0 \\
+        | groupby -- -0 --extension --print0 -c \"xargs -0 du -ch | tail -n1\"
+
+Note: the lack of an option to group by the first or last n words is an intional omission. There are
+many ways to define a word, and when grouping by words, the exact definition matters. To match based
+on words, please use --regex and supply a definition that works for your use case.
 
 USAGE:
     groupby [OPTIONS] <-f <n>|-l <n>|--regex <pattern>|--extension|--counter>

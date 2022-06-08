@@ -101,7 +101,7 @@ impl CommandBuilder {
             of file is using:
 
     find ~/Pictures/ -not -type d -print0 \\
-        | groupby -- -0 --extension --print0 -c \"xargs -0 du -ch | tail -n1\"\n\
+        | groupby -0 --extension --print0 -c \"xargs -0 du -chL | tail -n1\"\n\
             \n\
             Note: the lack of an option to group by the first or last n words is an intional \
             omission. There are many ways to define a word, and when grouping by words, the exact \
@@ -472,7 +472,7 @@ Much more complex use cases are also supported. For instance, to group files in 
 extension (case-sensitive) and print how much disk space each type of file is using:
 
     find ~/Pictures/ -not -type d -print0 \\
-        | groupby -- -0 --extension --print0 -c \"xargs -0 du -ch | tail -n1\"
+        | groupby -0 --extension --print0 -c \"xargs -0 du -chL | tail -n1\"
 
 Note: the lack of an option to group by the first or last n words is an intional omission. There are
 many ways to define a word, and when grouping by words, the exact definition matters. To match based

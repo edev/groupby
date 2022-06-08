@@ -1,6 +1,7 @@
 //! Simple reporting of results from running commands on groups.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
+use std::hash::Hash;
 use std::sync::Mutex;
 
 /// A common interface for single- and multi-threaded command runners to record results.
@@ -29,12 +30,33 @@ pub trait Report<K, V> {
     /// If this method is called more than once with the same `key`, older reports might be
     /// discarded.
     fn report(&mut self, key: K, output: V);
+
+    /// Returns the current report for `key`, if any.
+    ///
+    /// This is provided primarily for testing and is meant to simply wrap [BTreeMap::get()] and
+    /// [HashMap::get()].
+    fn get(&self, key: &K) -> Option<&V>;
 }
 
 impl<K: Ord, V> Report<K, V> for BTreeMap<K, V> {
     /// Record `output` as the report for `key`. Discards any existing report for `key`.
     fn report(&mut self, key: K, output: V) {
         self.insert(key, output);
+    }
+
+    fn get(&self, key: &K) -> Option<&V> {
+        self.get(key)
+    }
+}
+
+impl<K: Eq + Hash, V> Report<K, V> for HashMap<K, V> {
+    /// Record `output` as the report for `key`. Discards any existing report for `key`.
+    fn report(&mut self, key: K, output: V) {
+        self.insert(key, output);
+    }
+
+    fn get(&self, key: &K) -> Option<&V> {
+        self.get(key)
     }
 }
 
@@ -77,11 +99,11 @@ mod tests {
     use super::*;
     use std::sync::Arc;
 
-    fn works<'a>(map: &mut BTreeMap<&'a str, Vec<u8>>) {
+    fn works<'a, Map: Report<&'a str, Vec<u8>>>(map: &mut Map) {
         let results = "cat nap sofa sun warm smile";
         let key = "cat";
         map.report(key, results.as_bytes().to_vec());
-        assert_eq!(results.as_bytes(), map.get(key).unwrap());
+        assert_eq!(results.as_bytes(), map.get(&key).unwrap());
     }
 
     mod btree_map {
@@ -90,6 +112,15 @@ mod tests {
         #[test]
         fn works() {
             super::works(&mut BTreeMap::new());
+        }
+    }
+
+    mod hash_map {
+        use super::*;
+
+        #[test]
+        fn works() {
+            super::works(&mut HashMap::new());
         }
     }
 

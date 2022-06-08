@@ -352,8 +352,8 @@ impl CommandBuilder {
                     specified by the SHELL variable, just as if you had written $SHELL -c \"cmd\".
                     \n\
                     When you use this option, other output options affect the way each group is \
-                    passed to a command's standard input, and groupby ignores output options when \
-                    printing those commands' outputs.\n\
+                    passed to a command's standard input. When printing the outputs of the commands, \
+                    groupby uses the default formatting options.\n\
                     \n\
                     The commands are run in parallel and may run in arbitrary order. The commands' \
                     outputs are printed in order by group name."
@@ -490,8 +490,8 @@ GENERAL OUTPUT OPTIONS:
             variable, just as if you had written $SHELL -c \"cmd\".
             
             When you use this option, other output options affect the way each group is passed to a
-            command's standard input, and groupby ignores output options when printing those
-            commands' outputs.
+            command's standard input. When printing the outputs of the commands, groupby uses the
+            default formatting options.
             
             The commands are run in parallel and may run in arbitrary order. The commands' outputs
             are printed in order by group name.

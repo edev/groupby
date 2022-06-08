@@ -324,14 +324,16 @@ impl CommandBuilder {
         build!(self, next_help_heading, "GENERAL OUTPUT OPTIONS")
     }
 
-    /// Adds an option to output only group names, motting group contents.
+    /// Adds an option to output only group names, omitting group contents.
     pub fn output_only_group_names(self) -> Self {
         build!(
             self,
             arg,
-            Arg::new("output_only_group_names").long("matches").help(
-                "Instead of outputting lines, output the matched text that forms each group."
-            )
+            Arg::new("output_only_group_names")
+                .long("only-group-names")
+                .help(
+                    "Instead of outputting lines, output the matched text that forms each group."
+                )
         )
     }
 
@@ -412,8 +414,10 @@ OUTPUT SEPARATOR OPTIONS (choose zero or one):
         --printspace    When outputting lines, separate them with a space rather than a newline.
 
 GENERAL OUTPUT OPTIONS:
-    -c <cmd>         Execute command cmd for each group, passing the group via standard input.
-        --matches    Instead of outputting lines, output the matched text that forms each group.\n",
+    -c <cmd>                  Execute command cmd for each group, passing the group via standard
+                              input.
+        --only-group-names    Instead of outputting lines, output the matched text that forms each
+                              group.\n",
                 env!("CARGO_PKG_VERSION")
             )
         );
@@ -498,7 +502,7 @@ GENERAL OUTPUT OPTIONS:
             The commands are run in parallel and may run in arbitrary order. The commands' outputs
             are printed in order by group name.
 
-        --matches
+        --only-group-names
             Instead of outputting lines, output the matched text that forms each group.\n",
                 env!("CARGO_PKG_VERSION")
             )

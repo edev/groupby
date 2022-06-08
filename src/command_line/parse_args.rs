@@ -318,7 +318,7 @@ mod tests {
 
             // Long
             parses(
-                &vec!["app", "--matches", "-f1"],
+                &vec!["app", "--only-group-names", "-f1"],
                 |gbo: GroupByOptions| gbo.output.only_group_names,
                 true,
             );

@@ -7,7 +7,7 @@
 //!
 //! ```
 //! use groupby::command_line::options::*;
-//! use groupby::command_line::process_input::*;
+//! use groupby::command_line::build_groups::*;
 //! use std::collections::HashMap;
 //! use std::io::BufReader;
 //!
@@ -25,7 +25,7 @@
 //!     },
 //! };
 //!
-//! process_input(input, &mut map, &options);
+//! build_groups(input, &mut map, &options);
 //! assert_eq!(map.get(&"w".to_string()), Some(&vec!["words".to_string()]));
 //! ```
 
@@ -39,8 +39,8 @@ use std::io::BufRead;
 /// Based on preliminary benchmarking, single-threaded input processing appears to be about twice
 /// as fast as multi-threaded input processing, perhaps because of the small and frequent locking
 /// and unlocking of mutexes. Therefore, we do not provide a multi-threaded equivalent to
-/// `process_input`.
-pub fn process_input<I, Map>(mut input: I, map: &mut Map, options: &GroupByOptions)
+/// `build_groups`.
+pub fn build_groups<I, Map>(mut input: I, map: &mut Map, options: &GroupByOptions)
 where
     I: BufRead,
     Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
@@ -99,7 +99,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    mod process_input {
+    mod build_groups {
         use super::*;
         use crate::grouped_collections::fake_map::*;
         use std::io::BufReader;
@@ -125,7 +125,7 @@ mod tests {
                 },
             };
 
-            process_input(input, &mut map, &options);
+            build_groups(input, &mut map, &options);
             assert_eq!(
                 *map.calls(),
                 expected

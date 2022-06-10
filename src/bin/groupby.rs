@@ -11,7 +11,7 @@ fn main() {
 
     // Process stdin, populating map.
     let stdin = io::stdin();
-    command_line::process_input(stdin.lock(), &mut map, &options);
+    command_line::build_groups(stdin.lock(), &mut map, &options);
 
     // Depending on options, either print map directly or run a specified command over each group.
     command_line::output_results(io::stdout(), &map, &options);

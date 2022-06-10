@@ -23,7 +23,7 @@
 //! 1. [parse()]: Parse command-line arguments using the Command from the previous step. Generate
 //!    a [GroupByOptions] value that stores command-line options in a parser-agnostic way.
 //!
-//! 1. [process_input()]: process input through the selected [String grouper] using [Runner],
+//! 1. [build_groups()]: process input through the selected [String grouper] using [Runner],
 //!    adding each token into a [GroupedCollection].
 //!
 //! **Outputting results:**
@@ -45,16 +45,16 @@
 //! [String grouper]: crate::groupers::string::Groupers
 
 pub mod args;
+pub mod build_groups;
 pub mod options;
 pub mod output_results;
 pub mod parse_args;
-pub mod process_input;
 pub mod record_writer;
 pub mod run_command;
 
 pub use args::{args, command};
+pub use build_groups::build_groups;
 pub use options::*;
 pub use output_results::output_results;
 pub use parse_args::parse;
-pub use process_input::process_input;
 pub use record_writer::RecordWriter;

@@ -70,7 +70,7 @@
 //!     ecs450 study guide.pdf";
 //!
 //! // Split tokens by null characters, group them by class, and add them to the map.
-//! command_line::process_input(simulated_input.as_bytes(), &mut map, &options);
+//! command_line::build_groups(simulated_input.as_bytes(), &mut map, &options);
 //!
 //! // A complete application might use io::stdout().
 //! let mut output = Vec::new();

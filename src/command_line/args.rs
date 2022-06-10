@@ -372,6 +372,7 @@ impl CommandBuilder {
             arg,
             Arg::new("output_run_command")
                 .short('c')
+                .long("run-command")
                 .value_name("cmd")
                 .takes_value(true)
                 .help(
@@ -442,8 +443,8 @@ OUTPUT SEPARATOR OPTIONS (choose zero or one):
         --printspace    When outputting lines, separate them with a space rather than a newline.
 
 GENERAL OUTPUT OPTIONS:
-    -c <cmd>                  Execute command cmd for each group, passing the group via stdin.
-        --only-group-names    Output only group names, omitting group contents.\n",
+    -c, --run-command <cmd>    Execute command cmd for each group, passing the group via stdin.
+        --only-group-names     Output only group names, omitting group contents.\n",
                 env!("CARGO_PKG_VERSION")
             )
         );
@@ -529,7 +530,7 @@ OUTPUT SEPARATOR OPTIONS (choose zero or one):
             When outputting lines, separate them with a space rather than a newline.
 
 GENERAL OUTPUT OPTIONS:
-    -c <cmd>
+    -c, --run-command <cmd>
             Execute cmd as a shell command for each group, passing the group via standard input, one
             match per line. Each command runs as a command in the shell specified by the SHELL
             variable, just as if you had written $SHELL -c \"cmd\".

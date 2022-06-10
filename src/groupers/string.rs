@@ -24,7 +24,7 @@ pub trait Groupers<List> {
     ///
     /// assert_eq!(Some(&expected), map.get(&"kale".to_string()));
     /// ```
-    fn group_by_first_chars(&mut self, line: String, n: usize);
+    fn group_by_first_chars<S: Into<String>>(&mut self, line: S, n: usize);
 
     /// Groups a String according to its last `n` characters and adds it to the collection.
     ///
@@ -41,7 +41,7 @@ pub trait Groupers<List> {
     ///
     /// assert_eq!(Some(&expected), map.get(&"ally".to_string()));
     /// ```
-    fn group_by_last_chars(&mut self, line: String, n: usize);
+    fn group_by_last_chars<S: Into<String>>(&mut self, line: S, n: usize);
 
     /// Groups a String according to the provided Regex and adds it to the collection.
     ///
@@ -62,7 +62,7 @@ pub trait Groupers<List> {
     ///
     /// assert_eq!(Some(&expected), map.get(&"99".to_string()));
     /// ```
-    fn group_by_regex(&mut self, line: String, regex: &Regex);
+    fn group_by_regex<S: Into<String>>(&mut self, line: S, regex: &Regex);
 
     /// Groups a filename string by its extension.
     ///
@@ -89,7 +89,7 @@ pub trait Groupers<List> {
     /// assert_eq!(Some(&expected_gz), map.get(&"gz".to_string()));
     /// assert_eq!(Some(&expected_none), map.get(&"".to_string()));
     /// ```
-    fn group_by_file_extension(&mut self, filename: String);
+    fn group_by_file_extension<S: Into<String>>(&mut self, filename: S);
 
     /// Assigns a unique, incremental index to each line provided, starting at 0.
     ///
@@ -112,7 +112,7 @@ pub trait Groupers<List> {
     ///     assert_eq!(&vec![v.clone()], map.get(&i.to_string()).unwrap());
     /// }
     /// ```
-    fn group_by_counter(&mut self, line: String);
+    fn group_by_counter<S: Into<String>>(&mut self, line: S);
 }
 
 impl<'s, List, GC> Groupers<List> for GC
@@ -120,27 +120,32 @@ where
     List: 's,
     GC: GroupedCollection<'s, String, String, List>,
 {
-    fn group_by_first_chars(&mut self, line: String, n: usize) {
+    fn group_by_first_chars<S: Into<String>>(&mut self, line: S, n: usize) {
+        let line = line.into();
         let key = match_first_n_chars(&line, n).to_string();
         self.add(key, line);
     }
 
-    fn group_by_last_chars(&mut self, line: String, n: usize) {
+    fn group_by_last_chars<S: Into<String>>(&mut self, line: S, n: usize) {
+        let line = line.into();
         let key = match_last_n_chars(&line, n).to_string();
         self.add(key, line);
     }
 
-    fn group_by_regex(&mut self, line: String, regex: &Regex) {
+    fn group_by_regex<S: Into<String>>(&mut self, line: S, regex: &Regex) {
+        let line = line.into();
         let key = match_regex(&line, regex).unwrap_or("").to_string();
         self.add(key, line);
     }
 
-    fn group_by_file_extension(&mut self, filename: String) {
+    fn group_by_file_extension<S: Into<String>>(&mut self, filename: S) {
+        let filename = filename.into();
         let key = match_file_extension(&filename).unwrap_or("").to_string();
         self.add(key, filename);
     }
 
-    fn group_by_counter(&mut self, line: String) {
+    fn group_by_counter<S: Into<String>>(&mut self, line: S) {
+        let line = line.into();
         let key = match_counter().to_string();
         self.add(key, line);
     }
@@ -171,16 +176,16 @@ where
 ///
 /// assert_eq!(map.get("Hi"), Some(&vec!["Hi there".to_string()]));
 /// ```
-pub struct Runner<'a> {
-    run: Box<dyn FnMut(String) + 'a>,
+pub struct Runner<'a, S: Into<String>> {
+    run: Box<dyn FnMut(S) + 'a>,
 }
 
-impl<'a> Runner<'a> {
+impl<'a, S: Into<String>> Runner<'a, S> {
     pub fn new<Map>(map: &'a mut Map, spec: &'a GroupingSpecifier) -> Self
     where
         Map: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
     {
-        let run: Box<dyn FnMut(String)> = match spec {
+        let run: Box<dyn FnMut(S)> = match spec {
             GroupingSpecifier::FirstChars(n) => Box::new(move |s| map.group_by_first_chars(s, *n)),
             GroupingSpecifier::LastChars(n) => Box::new(move |s| map.group_by_last_chars(s, *n)),
             GroupingSpecifier::Regex(re) => Box::new(move |s| map.group_by_regex(s, re)),
@@ -191,7 +196,7 @@ impl<'a> Runner<'a> {
     }
 
     /// Syntactic sugar so you can write `runner.run(value)` instead of `(runner.run)(value)`.
-    pub fn run(&mut self, value: String) {
+    pub fn run(&mut self, value: S) {
         (self.run)(value);
     }
 }

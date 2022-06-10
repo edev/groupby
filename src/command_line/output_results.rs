@@ -44,7 +44,7 @@
 //! [OutputOptions]: crate::command_line::options::OutputOptions
 
 use crate::command_line::run_command::{self, *};
-use crate::command_line::{GroupByOptions, RecordWriter};
+use crate::command_line::{GroupByOptions, OutputOptions, RecordWriter, Separator};
 use crate::grouped_collections::GroupedCollection;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
@@ -54,6 +54,13 @@ use std::sync::Mutex;
 
 /// The environment variable that stores the name of the current shell.
 const SHELL_VAR: &str = "SHELL";
+
+/// The default OutputOptions. These are used when printing results after running commands.
+const DEFAULT_OUTPUT_OPTIONS: OutputOptions = OutputOptions {
+    separator: Separator::Line,
+    only_group_names: false,
+    run_command: None,
+};
 
 /// Processes groups and writes the output to a [writer](Write).
 ///
@@ -80,40 +87,24 @@ where
             only_group_names: options.output.only_group_names,
         };
 
-        let results: BTreeMap<&str, Vec<u8>> = BTreeMap::new();
+        let results: BTreeMap<&String, Vec<u8>> = BTreeMap::new();
         let results = run_commands_in_parallel(map, shell_command_options, results);
 
         // It might seem counter-intuitive, but when we output command results, we're going to
-        // deliberately ignore any separator specifications the user might have provided. The input
-        // separator is meant for parsing inputs, so it doesn't apply here. The output separator is
-        // for the benefit of whatever command (or command chain) is being run. The options do not
-        // include a specifier for which separator to use for this step. The sanest default is
-        // clearly newline. To even present this option would be really confusing, which is why it
-        // isn't currently an option anywhere in the crate.
-        const SEPARATOR: &str = "\n";
+        // deliberately ignore any output specifications the user might have provided.  The output
+        // options were used in whatever command (or command chain) was run. The options do not
+        // include a specifier for which separator to use for this step, and the output from the
+        // commands is arbitrary (from our perspective), so we can't make assumptions about it.
+        // The sanest option is to use the same basic, universal defaults as the program overall,
+        // e.g. Separator::Line.
+        //
+        // To even present options to customize this output would be really confusing, which is why
+        // it isn't currently an option anywhere in the crate.
 
-        let mut writer = RecordWriter::new(output, SEPARATOR.as_bytes());
-        for (key, value) in results.iter() {
-            let header = format!("{}:", key);
-            writer.write(&header);
-            writer.write(&String::from_utf8_lossy(value));
-        }
-    } else if options.output.only_group_names {
-        // Simply output group names.
-        let sep = line_separator(options);
-        let mut writer = RecordWriter::new(output, sep.as_bytes());
-        for (key, _) in map.iter() {
-            writer.write(key);
-        }
+        write_results(output, map, Some(&results), &DEFAULT_OUTPUT_OPTIONS);
     } else {
         // Simply output results directly.
-        let sep = line_separator(options);
-        let mut writer = RecordWriter::new(output, sep.as_bytes());
-        for (key, values) in map.iter() {
-            let header = format!("{}:", key);
-            writer.write(&header);
-            writer.write_all(values.iter());
-        }
+        write_results(output, map, None, &options.output);
     }
 }
 
@@ -181,7 +172,7 @@ pub fn run_commands_in_parallel<'a, M, R>(map: &'a M, options: ShellCommandOptio
 where
     M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
     &'a M: IntoParallelIterator<Item = (&'a String, &'a Vec<String>)>,
-    R: Report<&'a str, Vec<u8>> + Send,
+    R: Report<&'a String, Vec<u8>> + Send,
 {
     let results = Mutex::new(results);
     map.par_iter().for_each(|(key, value)| {
@@ -206,7 +197,7 @@ pub fn run_commands_sequentially<'a, M, R>(
 where
     M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
     &'a M: IntoParallelIterator<Item = (&'a String, &'a Vec<String>)>,
-    R: Report<&'a str, Vec<u8>>,
+    R: Report<&'a String, Vec<u8>>,
 {
     // For simplicity, we'll match the format to run_commands_in_parallel.
     map.iter().for_each(|(key, value)| {
@@ -276,6 +267,68 @@ pub fn capture_command_output<'a>(
     output.stdout
 }
 
+/// Write the final output from processing to a writer.
+///
+/// Provides the canonical implementation to write fully processed results (a [GroupedCollection]
+/// and an optional map of outputs from running commands over the [GroupedCollection]). The rules
+/// (with some minor details like punctuation omitted) are as follows:
+///
+/// - If [OutputOptions::only_group_names] is true, print group headers but not group contents.
+///
+/// - If `results` is a `Some` value, print each group's result instead of its contents (subject to
+///   the previous condition).
+///
+/// # Relationship between `map` and `results`
+///
+/// If `results` is a `Some` value, it should have the same set of keys as `map`. This method
+/// iterates over `map` and looks up each key from `map` in `results`. As a result, any keys in
+/// `results` that are not present in `map` will not be retrieved, and if any keys in `map` are
+/// not present in `results`, the method will panic.
+///
+/// # Panics
+///
+/// This method panics if a key in `map` is not present in `results`.
+///
+/// # Notes
+///
+/// This writer could be adapted into a [std::fmt::Display] implementation over
+/// `GroupedCollection<String, String, Vec<String>>`. Since this formatting was constructed for the
+/// specific purpose of presenting information in the context of the `groupby` command-line
+/// application or another similar application, the assumption is that this formatting may not be
+/// universally useful. This is why it's here and not in a trait implementation.
+pub fn write_results<'a, 'b, M, O>(
+    output: O,
+    map: &'a M,
+    results: Option<&BTreeMap<&'b String, Vec<u8>>>,
+    options: &'_ OutputOptions,
+) where
+    M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
+    O: Write,
+{
+    let separator = options.separator.sep();
+    let mut writer = RecordWriter::new(output, separator.as_bytes());
+
+    for (key, values) in map.iter() {
+        if options.only_group_names {
+            writer.write(key);
+        } else {
+            // Write header
+            writer.write(&format!("{}:", key));
+
+            // If there's a result set (from running a command over each group), write it as the
+            // group's output, and do not write the grou's contents. Otherwise, write the group's
+            // contents normally.
+            if let Some(results) = results {
+                let result_utf8 = results.get(key).unwrap();
+                let result = String::from_utf8_lossy(result_utf8);
+                writer.write(&result);
+            } else {
+                writer.write_all(values.iter());
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -307,17 +360,17 @@ mod tests {
             map
         }
 
-        pub fn results<'a>() -> BTreeMap<&'a str, Vec<u8>> {
+        pub fn results<'a>() -> BTreeMap<&'a String, Vec<u8>> {
             BTreeMap::new()
         }
 
         pub fn expected_results<'a>(
             map: &'a BTreeMap<String, Vec<String>>,
-        ) -> BTreeMap<&'a str, Vec<u8>> {
+        ) -> BTreeMap<&'a String, Vec<u8>> {
             let mut expected = BTreeMap::new();
             for (key, vector) in map.iter() {
                 expected.insert(
-                    &key[..],
+                    key,
                     vector
                         .iter()
                         .map(|s| s.to_owned() + "   ")
@@ -381,6 +434,25 @@ mod tests {
 
                     let expected: Vec<u8> =
                         b"Cats:\nMeowser\nMittens\n\nDogs:\nLassy\nBuddy\n\n".to_vec();
+                    output_results(&mut output, &map, &options);
+                    assert_eq!(
+                        String::from_utf8_lossy(&expected),
+                        String::from_utf8_lossy(&output)
+                    );
+                }
+
+                #[test]
+                fn uses_output_separator_correctly_and_reports_with_default_options() {
+                    // It's not really possible to test these two facets separately, so we'll just
+                    // combine them into one test.
+
+                    let mut output: Vec<u8> = vec![];
+                    let mut options = options_for(Some(String::from("cat")), false);
+                    options.output.separator = Separator::Space;
+                    let map = map();
+
+                    let expected: Vec<u8> =
+                        b"Cats:\nMeowser Mittens \nDogs:\nLassy Buddy \n".to_vec();
                     output_results(&mut output, &map, &options);
                     assert_eq!(
                         String::from_utf8_lossy(&expected),
@@ -589,6 +661,103 @@ mod tests {
             let actual = capture_command_output(&options, &key, &values);
             let actual = String::from_utf8_lossy(&actual);
             assert_eq!(expected, actual);
+        }
+    }
+
+    mod write_results {
+        use super::helpers::*;
+        use super::*;
+
+        fn options_for(only_group_names: bool) -> OutputOptions {
+            OutputOptions {
+                separator: Separator::Line,
+                only_group_names,
+                run_command: None,
+            }
+        }
+
+        #[test]
+        fn uses_output_separator() {
+            let mut output: Vec<u8> = vec![];
+            let mut options = options_for(false);
+            options.separator = Separator::Null;
+            let map = map();
+
+            write_results(&mut output, &map, None, &options);
+
+            let expected = "Cats:\0Meowser\0Mittens\0Dogs:\0Lassy\0Buddy\0".to_string();
+            let actual = String::from_utf8_lossy(&output);
+            assert_eq!(expected, actual);
+        }
+
+        mod with_only_group_names {
+            use super::*;
+
+            #[test]
+            fn works() {
+                let mut output: Vec<u8> = vec![];
+                let options = options_for(true);
+                let map = map();
+
+                write_results(&mut output, &map, None, &options);
+
+                let expected = "Cats\nDogs\n".to_string();
+                let actual = String::from_utf8_lossy(&output);
+                assert_eq!(expected, actual);
+            }
+        }
+
+        mod without_only_group_names {
+            use super::*;
+
+            mod with_results {
+                use super::*;
+
+                // Constructs a results map where each key's value is its reverse.
+                fn results<'a, M>(map: &'a M) -> BTreeMap<&'a String, Vec<u8>>
+                where
+                    M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
+                {
+                    let mut results = BTreeMap::new();
+                    for (key, _) in map.iter() {
+                        let mut output = Vec::<u8>::from(key.clone());
+                        output.reverse();
+                        results.insert(key, output);
+                    }
+                    results
+                }
+
+                #[test]
+                fn writes_results_instead_of_group_contents() {
+                    let mut output: Vec<u8> = vec![];
+                    let options = options_for(false);
+                    let map = map();
+                    let results = results(&map);
+
+                    write_results(&mut output, &map, Some(&results), &options);
+
+                    let expected = "Cats:\nstaC\nDogs:\nsgoD\n".to_string();
+                    let actual = String::from_utf8_lossy(&output);
+                    assert_eq!(expected, actual);
+                }
+            }
+
+            mod without_results {
+                use super::*;
+
+                #[test]
+                fn works() {
+                    let mut output: Vec<u8> = vec![];
+                    let options = options_for(false);
+                    let map = map();
+
+                    write_results(&mut output, &map, None, &options);
+
+                    let expected = "Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_string();
+                    let actual = String::from_utf8_lossy(&output);
+                    assert_eq!(expected, actual);
+                }
+            }
         }
     }
 }

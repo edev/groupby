@@ -55,6 +55,7 @@ pub mod run_command;
 pub use args::{args, command};
 pub use build_groups::build_groups;
 pub use options::*;
-pub use output_results::output_results;
+pub use output_results::run_command;
+pub use output_results::write_results;
 pub use parse_args::parse;
 pub use record_writer::RecordWriter;

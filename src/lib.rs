@@ -76,8 +76,11 @@
 //! let mut output = Vec::new();
 //!
 //! // Run `wc -l` once for each group, pass the group's contents to the group's stdin, and collect
-//! // each command's stdout.
-//! command_line::output_results(&mut output, &map, &options);
+//! // each command's stdout in a BTreeMap.
+//! let results = command_line::run_command(&map, &options.output, true);
+//!
+//! // Report the results to the output writer.
+//! command_line::write_results(&mut output, &map, &results, &options.output);
 //!
 //! assert_eq!(String::from_utf8_lossy(&output),
 //! "ecs440:

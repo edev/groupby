@@ -9,10 +9,14 @@ fn main() {
     // Choose which GroupedCollection implementation we're going to use.
     let mut map = BTreeMap::<String, Vec<String>>::new();
 
-    // Process stdin, populating map.
+    // Process stdin, building a GroupedCollection.
     let stdin = io::stdin();
     command_line::build_groups(stdin.lock(), &mut map, &options);
 
-    // Depending on options, either print map directly or run a specified command over each group.
-    command_line::output_results(io::stdout(), &map, &options);
+    // If requested, run commands over the GroupedCollection and return a map of the commands'
+    // captured standard outputs.
+    let command_results = command_line::run_command(&map, &options.output, true);
+
+    // Write the final results, per the user's options, to standard output.
+    command_line::write_results(io::stdout(), &map, &command_results, &options.output);
 }

@@ -104,10 +104,18 @@ pub fn write_results<'a, 'b, M, O>(
 
     for (key, values) in map.iter() {
         if options.only_group_names {
-            writer.write(key);
+            if options.stats {
+                writer.write(&format!("{} ({})", key, item_count(values)));
+            } else {
+                writer.write(key);
+            }
         } else {
             // Write header
-            writer.write(&format!("{}:", key));
+            if options.stats {
+                writer.write(&format!("{}: ({})", key, item_count(values)));
+            } else {
+                writer.write(&format!("{}:", key));
+            }
 
             // If there's a result set (from running a command over each group), write it as the
             // group's output, and do not write the grou's contents. Otherwise, write the group's
@@ -181,12 +189,12 @@ mod tests {
     mod write_results {
         use super::*;
 
-        fn options_for(only_group_names: bool) -> OutputOptions {
+        fn options_for(only_group_names: bool, stats: bool) -> OutputOptions {
             OutputOptions {
                 separator: Separator::Line,
                 only_group_names,
                 run_command: None,
-                stats: false,
+                stats,
             }
         }
 
@@ -210,7 +218,7 @@ mod tests {
             #[test]
             fn writes_results_using_default_options() {
                 let mut output: Vec<u8> = vec![];
-                let mut options = options_for(true); // write_results should ignore `true`.
+                let mut options = options_for(true, false); // write_results should ignore `true`.
                 options.separator = Separator::Null; // write_results should ignore this.
                 let map = map();
                 let results = Some(results(&map));
@@ -229,7 +237,7 @@ mod tests {
             #[test]
             fn uses_output_separator() {
                 let mut output: Vec<u8> = vec![];
-                let mut options = options_for(false);
+                let mut options = options_for(false, false);
                 options.separator = Separator::Null;
                 let map = map();
 
@@ -243,34 +251,78 @@ mod tests {
             mod with_only_group_names {
                 use super::*;
 
-                #[test]
-                fn works() {
-                    let mut output: Vec<u8> = vec![];
-                    let options = options_for(true);
-                    let map = map();
+                mod with_stats {
+                    use super::*;
 
-                    write_results(&mut output, &map, &None, &options);
+                    #[test]
+                    fn works() {
+                        let mut output: Vec<u8> = vec![];
+                        let options = options_for(true, true);
+                        let map = map();
 
-                    let expected = "Cats\nDogs\n".to_string();
-                    let actual = String::from_utf8_lossy(&output);
-                    assert_eq!(expected, actual);
+                        write_results(&mut output, &map, &None, &options);
+
+                        let expected = "Cats (2 items)\nDogs (2 items)\n".to_string();
+                        let actual = String::from_utf8_lossy(&output);
+                        assert_eq!(expected, actual);
+                    }
+                }
+
+                mod without_stats {
+                    use super::*;
+
+                    #[test]
+                    fn works() {
+                        let mut output: Vec<u8> = vec![];
+                        let options = options_for(true, false);
+                        let map = map();
+
+                        write_results(&mut output, &map, &None, &options);
+
+                        let expected = "Cats\nDogs\n".to_string();
+                        let actual = String::from_utf8_lossy(&output);
+                        assert_eq!(expected, actual);
+                    }
                 }
             }
 
             mod without_only_group_names {
                 use super::*;
 
-                #[test]
-                fn works() {
-                    let mut output: Vec<u8> = vec![];
-                    let options = options_for(false);
-                    let map = map();
+                mod with_stats {
+                    use super::*;
 
-                    write_results(&mut output, &map, &None, &options);
+                    #[test]
+                    fn works() {
+                        let mut output: Vec<u8> = vec![];
+                        let options = options_for(false, true);
+                        let map = map();
 
-                    let expected = "Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_string();
-                    let actual = String::from_utf8_lossy(&output);
-                    assert_eq!(expected, actual);
+                        write_results(&mut output, &map, &None, &options);
+
+                        let expected = String::from(
+                            "Cats: (2 items)\nMeowser\nMittens\nDogs: (2 items)\nLassy\nBuddy\n",
+                        );
+                        let actual = String::from_utf8_lossy(&output);
+                        assert_eq!(expected, actual);
+                    }
+                }
+
+                mod without_stats {
+                    use super::*;
+
+                    #[test]
+                    fn works() {
+                        let mut output: Vec<u8> = vec![];
+                        let options = options_for(false, false);
+                        let map = map();
+
+                        write_results(&mut output, &map, &None, &options);
+
+                        let expected = "Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_string();
+                        let actual = String::from_utf8_lossy(&output);
+                        assert_eq!(expected, actual);
+                    }
                 }
             }
         }

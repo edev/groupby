@@ -76,6 +76,10 @@ pub struct OutputOptions {
     /// be tailored for human consumption. If a need arises, we can add an option or set of options
     /// to accommodate specific final output requirements for program output.
     pub run_command: Option<String>,
+
+    /// Print statistics: an item count for each group and stats about the collection overall.
+    /// Not affected by run_command.
+    pub stats: bool,
 }
 
 /// The main options struct that holds all other options.

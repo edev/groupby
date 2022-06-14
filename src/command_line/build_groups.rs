@@ -22,6 +22,7 @@
 //!         separator: Separator::Line,
 //!         only_group_names: false,
 //!         run_command: None,
+//!         stats: false,
 //!     },
 //! };
 //!
@@ -122,6 +123,7 @@ mod tests {
                     separator: Separator::Line,
                     only_group_names: false,
                     run_command: None,
+                    stats: false,
                 },
             };
 

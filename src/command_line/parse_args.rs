@@ -88,17 +88,19 @@ where
             Separator::Line
         };
 
-        // Parse output only_group_names.
         let only_group_names = matches.is_present("output_only_group_names");
 
         // Unfortunately, ArgMatches::value_of() returns Option<&str>, but we need
         // Option<String>, so we can't just unwrap.
         let run_command = matches.value_of("output_run_command").map(str::to_string);
 
+        let stats = matches.is_present("output_stats");
+
         output = OutputOptions {
             separator,
             only_group_names,
             run_command,
+            stats,
         };
     }
 

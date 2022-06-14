@@ -24,6 +24,7 @@
 //!     separator: Separator::Line,
 //!     only_group_names: false,
 //!     run_command: None,
+//!     stats: false,
 //! };
 //!
 //! // If we didn't know that options.run_command would be None, we would call run_command here.
@@ -46,12 +47,18 @@ use crate::grouped_collections::GroupedCollection;
 use std::collections::BTreeMap;
 use std::io::Write;
 
-/// The default OutputOptions. These are used when printing results after running commands.
-pub const DEFAULT_OUTPUT_OPTIONS: OutputOptions = OutputOptions {
-    separator: Separator::Line,
-    only_group_names: false,
-    run_command: None,
-};
+/// Builds an [OutputOptions] that uses safe defaults for printing while preserving some options.
+///
+/// The options reset are specified in the help text in [mod@super::args]. This function is used
+/// for printing the results from [mod@super::run_command].
+pub fn default_output_options(base: &OutputOptions) -> OutputOptions {
+    OutputOptions {
+        separator: Separator::Line,
+        only_group_names: false,
+        run_command: None,
+        stats: base.stats,
+    }
+}
 
 /// Write the final output from processing to a writer.
 ///
@@ -86,8 +93,9 @@ pub fn write_results<'a, 'b, M, O>(
     M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
     O: Write,
 {
+    let default_options = default_output_options(options);
     let options = match results {
-        Some(_) => &DEFAULT_OUTPUT_OPTIONS,
+        Some(_) => &default_options,
         None => options,
     };
 
@@ -121,6 +129,46 @@ mod tests {
     use crate::command_line::options::*;
     use crate::command_line::test_helpers::*;
 
+    mod default_output_options {
+        use super::*;
+
+        #[test]
+        fn uses_safe_defaults() {
+            let unsafe_base = OutputOptions {
+                separator: Separator::Null,
+                only_group_names: true,
+                run_command: Some("command".to_string()),
+                stats: false,
+            };
+            let expected = OutputOptions {
+                separator: Separator::Line,
+                only_group_names: false,
+                run_command: None,
+                stats: false,
+            };
+            assert_eq!(expected, default_output_options(&unsafe_base));
+        }
+
+        #[test]
+        fn preserves_stats() {
+            for val in [false, true] {
+                let unsafe_base = OutputOptions {
+                    separator: Separator::Null,
+                    only_group_names: true,
+                    run_command: Some("command".to_string()),
+                    stats: val,
+                };
+                let expected = OutputOptions {
+                    separator: Separator::Line,
+                    only_group_names: false,
+                    run_command: None,
+                    stats: val,
+                };
+                assert_eq!(expected, default_output_options(&unsafe_base));
+            }
+        }
+    }
+
     mod write_results {
         use super::*;
 
@@ -129,6 +177,7 @@ mod tests {
                 separator: Separator::Line,
                 only_group_names,
                 run_command: None,
+                stats: false,
             }
         }
 

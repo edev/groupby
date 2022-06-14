@@ -57,6 +57,7 @@
 //!         separator: Separator::Line,
 //!         only_group_names: false,
 //!         run_command: Some("wc -l".to_string()),
+//!         stats: false,
 //!     },
 //! };
 //!

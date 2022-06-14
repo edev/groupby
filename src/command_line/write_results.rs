@@ -123,6 +123,15 @@ pub fn write_results<'a, 'b, M, O>(
     }
 }
 
+/// Provides a human-readable description of the length of a vector, like "1 item" or "48 items".
+pub fn item_count<_T>(items: &Vec<_T>) -> String {
+    if items.len() == 1 {
+        "1 item".to_string()
+    } else {
+        format!("{} items", items.len())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,6 +272,34 @@ mod tests {
                     let actual = String::from_utf8_lossy(&output);
                     assert_eq!(expected, actual);
                 }
+            }
+        }
+    }
+
+    mod item_count {
+        use super::*;
+
+        // Shouldn't happen, but should be correct if it somehow does.
+        #[test]
+        fn works_with_0_items() {
+            let expected = "0 items".to_string();
+            let actual = item_count(&Vec::<u8>::new());
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn works_with_1_item() {
+            let expected = "1 item".to_string();
+            let actual = item_count(&vec![1]);
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn works_with_more_than_1_item() {
+            for i in 2..4 {
+                let expected = format!("{} items", i);
+                let actual = item_count(&(0..i).collect());
+                assert_eq!(expected, actual);
             }
         }
     }

@@ -347,6 +347,7 @@ impl CommandBuilder {
         self.output_options_header()
             .output_only_group_names()
             .output_run_command()
+            .output_stats()
     }
 
     /// Adds the general output options header.
@@ -389,6 +390,25 @@ impl CommandBuilder {
                     \n\
                     The commands are run in parallel and may run in arbitrary order. The commands' \
                     outputs are printed in order by group name."
+                )
+        )
+    }
+
+    /// Adds an option to display statistics for each group and for the collection as a whole.
+    pub fn output_stats(self) -> Self {
+        build!(
+            self,
+            arg,
+            Arg::new("output_stats")
+                .long("stats")
+                .help("Print statistics about groups alongside normal output.")
+                .long_help(
+                    "Print an item count for each group, plus statistics about the overall \
+                    collection, in addition to any other output (as specified by other options).\n\
+                    \n\
+                    This option is not affected by -c. When used with -c, the text sent to each \
+                    command does not change. The final output is augmented with statistics about \
+                    the groups and their contents (not about the commands or their outputs)."
                 )
         )
     }
@@ -444,7 +464,8 @@ OUTPUT SEPARATOR OPTIONS (choose zero or one):
 
 GENERAL OUTPUT OPTIONS:
     -c, --run-command <cmd>    Execute command cmd for each group, passing the group via stdin.
-        --only-group-names     Output only group names, omitting group contents.\n",
+        --only-group-names     Output only group names, omitting group contents.
+        --stats                Print statistics about groups alongside normal output.\n",
                 env!("CARGO_PKG_VERSION")
             )
         );
@@ -543,7 +564,15 @@ GENERAL OUTPUT OPTIONS:
             are printed in order by group name.
 
         --only-group-names
-            Output only group names, omitting group contents.\n",
+            Output only group names, omitting group contents.
+
+        --stats
+            Print an item count for each group, plus statistics about the overall collection, in
+            addition to any other output (as specified by other options).
+            
+            This option is not affected by -c. When used with -c, the text sent to each command does
+            not change. The final output is augmented with statistics about the groups and their
+            contents (not about the commands or their outputs).\n",
                 env!("CARGO_PKG_VERSION")
             )
         );

@@ -31,7 +31,7 @@
 //! 1. If [GroupByOptions] requests to run a command against each group, call [run()]
 //!    once for each group. Write each group to the standard input for its command (following the
 //!    options specified in [GroupByOptions::output]). Record each command's standard output using
-//!    [run_command::report].
+//!    [command_runner::report].
 //!
 //! 1. Print either the command results from the previous step or the contents of the
 //!    [GroupedCollection]. In the latter case, follow the options specified in
@@ -40,22 +40,25 @@
 //! [clap]: https://crates.io/crates/clap
 //! [groupby]: https://github.com/edev/groupby/tree/master/src/bin/groupby.rs
 //! [GroupedCollection]: crate::grouped_collections::GroupedCollection
-//! [run()]: run_command::run()
+//! [run()]: command_runner::run()
 //! [Runner]: crate::groupers::string::Runner
 //! [String grouper]: crate::groupers::string::Groupers
 
 pub mod args;
 pub mod build_groups;
+pub mod command_runner;
 pub mod options;
-pub mod output_results;
 pub mod parse_args;
 pub mod record_writer;
 pub mod run_command;
+#[cfg(test)]
+mod test_helpers;
+pub mod write_results;
 
 pub use args::{args, command};
 pub use build_groups::build_groups;
 pub use options::*;
-pub use output_results::run_command;
-pub use output_results::write_results;
 pub use parse_args::parse;
 pub use record_writer::RecordWriter;
+pub use run_command::run_command;
+pub use write_results::write_results;

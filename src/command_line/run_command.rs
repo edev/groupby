@@ -1,62 +1,54 @@
-//! Processes a [GroupedCollection] according to [OutputOptions] and outputs the results.
+//! High-level support for running commands over a [GroupedCollection] using [OutputOptions].
 //!
-//! # Examples
+//! This module provides layers of abstraction for easy composition and testing of functions. For
+//! most use cases, you will probably only need [run_command()].
 //!
-//! ```
-//! use groupby::command_line;
-//! use groupby::command_line::options::*;
-//! use groupby::command_line::output_results::{run_command, write_results};
-//! use groupby::grouped_collections::GroupedCollection;
-//! use std::collections::BTreeMap;
+//! # Module organization in detail
 //!
-//! let mut output = vec![];
+//! [run_command()] provides a top-level entry point. It is the only method you're likely to need
+//! as a user of this library.
 //!
-//! let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
-//! let key = String::from("seasons");
-//! let seasons = ["winter", "spring", "summer", "fall"];
-//! for season in seasons {
-//!     map.add(key.clone(), season.to_string());
-//! }
+//! [current_shell()] and [shell_args()] abstract away the details of setting up a shell to run a
+//! command. Both functions are trivial.
 //!
-//! let options = OutputOptions {
-//!     separator: Separator::Line,
-//!     only_group_names: false,
-//!     run_command: None,
-//! };
+//! [run_commands_in_parallel()] and [run_commands_sequentially()] take a shell command
+//! configuration (specified using a [ShellCommandOptions]) and a [GroupedCollection] and run the
+//! command over each group, building a [Report] with each group's standard output.
 //!
-//! // If we didn't know that options.run_command would be None, we would call run_command here.
-//!
-//! command_line::write_results(&mut output, &map, &None, &options);
-//!
-//! let expected = "seasons:\n\
-//!     winter\n\
-//!     spring\n\
-//!     summer\n\
-//!     fall\n".to_string();
-//!
-//! assert_eq!(expected, String::from_utf8_lossy(&output));
-//! ```
-//!
-//! [OutputOptions]: crate::command_line::options::OutputOptions
+//! [capture_command_output] runs a single shell command and captures its output. This function, in
+//! turn, uses [command_runner::run()] to run the shell command.
 
-use crate::command_line::run_command::{self, *};
-use crate::command_line::{OutputOptions, RecordWriter, Separator};
+use crate::command_line::command_runner::{self, *};
+use crate::command_line::OutputOptions;
 use crate::grouped_collections::GroupedCollection;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
-use std::io::Write;
 use std::ops::Deref;
 use std::sync::Mutex;
 
 /// The environment variable that stores the name of the current shell.
 const SHELL_VAR: &str = "SHELL";
 
-/// The default OutputOptions. These are used when printing results after running commands.
-const DEFAULT_OUTPUT_OPTIONS: OutputOptions = OutputOptions {
-    separator: Separator::Line,
-    only_group_names: false,
-    run_command: None,
-};
+/// Options needed for running a shell command over a group.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShellCommandOptions<'a> {
+    /// The path to the shell, e.g. `/usr/bin/zsh`.
+    pub shell: String,
+
+    /// The arguments to pass to the shell, one per item in the [Vec], e.g. `vec!["-c", "do_thing |
+    /// tail -n 4"]`
+    pub shell_args: Vec<&'a str>,
+
+    /// The string that should separate values passed to the command's standard input, e.g. `"\n"`.
+    pub line_separator: String,
+
+    /// If true, pass only the group's key followed by `line_separator` via the command's standard
+    /// input.
+    ///
+    /// If false, for each value in the group, write the value followed by `line_separator` to the
+    /// command's standard input.
+    pub only_group_names: bool,
+}
 
 /// Runs commands over a [GroupedCollection], if requested by [OutputOptions].
 ///
@@ -107,7 +99,7 @@ where
 /// method. A library user who prefers to handle this differently is free to invoke either
 /// [run_commands_in_parallel] or [run_commands_sequentially] directly and provide their own
 /// wrapping code.
-fn current_shell() -> String {
+pub fn current_shell() -> String {
     std::env::var(SHELL_VAR).unwrap_or_else(|e| {
         eprintln!(
             "Couldn't retrieve environment variable {}: {}",
@@ -121,29 +113,8 @@ fn current_shell() -> String {
 ///
 /// Note that this function is not smart in any way; it simply assumes that the shell accepts a
 /// `-c` argument followed by an argument containing a command string to interpret.
-fn shell_args(cmd: &str) -> Vec<&str> {
+pub fn shell_args(cmd: &str) -> Vec<&str> {
     vec!["-c", cmd]
-}
-
-/// Options needed for running a shell command over a group.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ShellCommandOptions<'a> {
-    /// The path to the shell, e.g. `/usr/bin/zsh`.
-    pub shell: String,
-
-    /// The arguments to pass to the shell, one per item in the [Vec], e.g. `vec!["-c", "do_thing |
-    /// tail -n 4"]`
-    pub shell_args: Vec<&'a str>,
-
-    /// The string that should separate values passed to the command's standard input, e.g. `"\n"`.
-    pub line_separator: String,
-
-    /// If true, pass only the group's key followed by `line_separator` via the command's standard
-    /// input.
-    ///
-    /// If false, for each value in the group, write the value followed by `line_separator` to the
-    /// command's standard input.
-    pub only_group_names: bool,
 }
 
 /// Runs commands over groups in parallel.
@@ -210,7 +181,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use groupby::command_line::output_results::*;
+/// use groupby::command_line::run_command::*;
 ///
 /// let options = ShellCommandOptions {
 ///     shell: "/usr/bin/bash".to_string(),
@@ -234,7 +205,7 @@ pub fn capture_command_output<'a>(
     values: &'a [String],
 ) -> Vec<u8> {
     // Spawn the new shell process.
-    let mut handle = run_command::run(
+    let mut handle = command_runner::run(
         &options.shell,
         options.shell_args.iter().map(Deref::deref),
         &options.line_separator,
@@ -252,132 +223,11 @@ pub fn capture_command_output<'a>(
     output.stdout
 }
 
-/// Write the final output from processing to a writer.
-///
-/// Provides the canonical implementation to write fully processed results (a [GroupedCollection]
-/// and an optional map of outputs from running commands over the [GroupedCollection]). The rules
-/// (with some minor details like punctuation omitted) are as follows:
-///
-/// - If `results` is a `Some` value, print each group's result instead of its contents, using
-///   default options. Otherwise:
-///
-///   - If `results` is `None` and [OutputOptions::only_group_names] is true, print group headers
-///     but not group contents.
-///
-///   - Write [OutputOptions::separator] after each header and each group member.
-///
-/// # Relationship between `map` and `results`
-///
-/// If `results` is a `Some` value, it should have the same set of keys as `map`. This method
-/// iterates over `map` and looks up each key from `map` in `results`. As a result, any keys in
-/// `results` that are not present in `map` will not be retrieved, and if any keys in `map` are
-/// not present in `results`, the method will panic.
-///
-/// # Panics
-///
-/// This method panics if a key in `map` is not present in `results`.
-pub fn write_results<'a, 'b, M, O>(
-    output: O,
-    map: &'a M,
-    results: &Option<BTreeMap<&'b String, Vec<u8>>>,
-    options: &'_ OutputOptions,
-) where
-    M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
-    O: Write,
-{
-    let options = match results {
-        Some(_) => &DEFAULT_OUTPUT_OPTIONS,
-        None => options,
-    };
-
-    let separator = options.separator.sep();
-    let mut writer = RecordWriter::new(output, separator.as_bytes());
-
-    for (key, values) in map.iter() {
-        if options.only_group_names {
-            writer.write(key);
-        } else {
-            // Write header
-            writer.write(&format!("{}:", key));
-
-            // If there's a result set (from running a command over each group), write it as the
-            // group's output, and do not write the grou's contents. Otherwise, write the group's
-            // contents normally.
-            if let Some(results) = results {
-                let result_utf8 = results.get(key).unwrap();
-                let result = String::from_utf8_lossy(result_utf8);
-                writer.write(&result);
-            } else {
-                writer.write_all(values.iter());
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::command_line::options::*;
-
-    pub mod helpers {
-        use super::*;
-
-        // Returns a ShelLCommandOptions for use in run* tests.
-        pub fn options<'a>(only_group_names: bool) -> ShellCommandOptions<'a> {
-            ShellCommandOptions {
-                shell: current_shell(),
-                shell_args: shell_args("cat"),
-                line_separator: "   ".to_string(),
-                only_group_names,
-            }
-        }
-
-        pub fn map() -> BTreeMap<String, Vec<String>> {
-            let mut map = BTreeMap::new();
-            map.insert(
-                "Dogs".to_string(),
-                vec!["Lassy".to_string(), "Buddy".to_string()],
-            );
-            map.insert(
-                "Cats".to_string(),
-                vec!["Meowser".to_string(), "Mittens".to_string()],
-            );
-            map
-        }
-
-        pub fn results<'a>() -> BTreeMap<&'a String, Vec<u8>> {
-            BTreeMap::new()
-        }
-
-        pub fn expected_results<'a>(
-            map: &'a BTreeMap<String, Vec<String>>,
-            separator: &str,
-            only_group_names: bool,
-        ) -> BTreeMap<&'a String, Vec<u8>> {
-            let mut expected = BTreeMap::new();
-            for (key, vector) in map.iter() {
-                if only_group_names {
-                    // Group name plus separator.
-                    let value = key.to_owned() + separator;
-
-                    // Convert to Vec<u8> and insert.
-                    let value = value.as_bytes().to_vec();
-                    expected.insert(key, value);
-                } else {
-                    expected.insert(
-                        key,
-                        vector
-                            .iter()
-                            .map(|s| s.to_owned() + separator)
-                            .collect::<String>()
-                            .as_bytes()
-                            .to_vec(),
-                    );
-                }
-            }
-            expected
-        }
-    }
+    use crate::command_line::test_helpers::*;
 
     mod run_command {
         use super::*;
@@ -423,7 +273,6 @@ mod tests {
 
                 mod with_only_group_names {
                     use super::*;
-                    use helpers::*;
 
                     #[test]
                     fn outputs_only_group_names() {
@@ -442,7 +291,6 @@ mod tests {
 
                 mod without_only_group_names {
                     use super::*;
-                    use helpers::*;
 
                     #[test]
                     fn outputs_results_correctly() {
@@ -503,7 +351,6 @@ mod tests {
     }
 
     mod run_commands_in_parallel {
-        use super::helpers::*;
         use super::*;
 
         #[test]
@@ -518,7 +365,6 @@ mod tests {
     }
 
     mod run_commands_sequentially {
-        use super::helpers::*;
         use super::*;
 
         #[test]
@@ -533,7 +379,6 @@ mod tests {
     }
 
     mod capture_command_output {
-        use super::helpers::*;
         use super::*;
 
         fn kv<'a>() -> (&'static str, Vec<String>) {
@@ -565,104 +410,6 @@ mod tests {
             let actual = capture_command_output(&options, &key, &values);
             let actual = String::from_utf8_lossy(&actual);
             assert_eq!(expected, actual);
-        }
-    }
-
-    mod write_results {
-        use super::helpers::*;
-        use super::*;
-
-        fn options_for(only_group_names: bool) -> OutputOptions {
-            OutputOptions {
-                separator: Separator::Line,
-                only_group_names,
-                run_command: None,
-            }
-        }
-
-        // Constructs a results map where each key's value is its reverse.
-        fn results<'a, M>(map: &'a M) -> BTreeMap<&'a String, Vec<u8>>
-        where
-            M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
-        {
-            let mut results = BTreeMap::new();
-            for (key, _) in map.iter() {
-                let mut output = Vec::<u8>::from(key.clone());
-                output.reverse();
-                results.insert(key, output);
-            }
-            results
-        }
-
-        mod with_results {
-            use super::*;
-
-            #[test]
-            fn writes_results_using_default_options() {
-                let mut output: Vec<u8> = vec![];
-                let mut options = options_for(true); // write_results should ignore `true`.
-                options.separator = Separator::Null; // write_results should ignore this.
-                let map = map();
-                let results = Some(results(&map));
-
-                write_results(&mut output, &map, &results, &options);
-
-                let expected = "Cats:\nstaC\nDogs:\nsgoD\n".to_string();
-                let actual = String::from_utf8_lossy(&output);
-                assert_eq!(expected, actual);
-            }
-        }
-
-        mod without_results {
-            use super::*;
-
-            #[test]
-            fn uses_output_separator() {
-                let mut output: Vec<u8> = vec![];
-                let mut options = options_for(false);
-                options.separator = Separator::Null;
-                let map = map();
-
-                write_results(&mut output, &map, &None, &options);
-
-                let expected = "Cats:\0Meowser\0Mittens\0Dogs:\0Lassy\0Buddy\0".to_string();
-                let actual = String::from_utf8_lossy(&output);
-                assert_eq!(expected, actual);
-            }
-
-            mod with_only_group_names {
-                use super::*;
-
-                #[test]
-                fn works() {
-                    let mut output: Vec<u8> = vec![];
-                    let options = options_for(true);
-                    let map = map();
-
-                    write_results(&mut output, &map, &None, &options);
-
-                    let expected = "Cats\nDogs\n".to_string();
-                    let actual = String::from_utf8_lossy(&output);
-                    assert_eq!(expected, actual);
-                }
-            }
-
-            mod without_only_group_names {
-                use super::*;
-
-                #[test]
-                fn works() {
-                    let mut output: Vec<u8> = vec![];
-                    let options = options_for(false);
-                    let map = map();
-
-                    write_results(&mut output, &map, &None, &options);
-
-                    let expected = "Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_string();
-                    let actual = String::from_utf8_lossy(&output);
-                    assert_eq!(expected, actual);
-                }
-            }
         }
     }
 }

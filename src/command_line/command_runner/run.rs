@@ -14,7 +14,7 @@ use std::process::{self, Stdio};
 /// # Examples
 ///
 /// ```
-/// use groupby::command_line::run_command::run::run;
+/// use groupby::command_line::command_runner::run::run;
 ///
 /// let handle = run("bash", ["-c", "echo hi"], "");
 /// let output = handle.wait_with_output().unwrap();

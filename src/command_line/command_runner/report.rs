@@ -14,7 +14,7 @@ use std::sync::Mutex;
 /// # Examples
 ///
 /// ```
-/// use groupby::command_line::run_command::report::*;
+/// use groupby::command_line::command_runner::report::*;
 /// use std::collections::BTreeMap;
 ///
 /// let mut results = BTreeMap::new();
@@ -65,7 +65,7 @@ impl<K: Eq + Hash, V> Report<K, V> for HashMap<K, V> {
 /// # Examples
 ///
 /// ```
-/// use groupby::command_line::run_command::report::*;
+/// use groupby::command_line::command_runner::report::*;
 /// use std::collections::BTreeMap;
 /// use std::sync::{Arc, Mutex};
 ///

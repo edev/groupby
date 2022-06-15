@@ -268,6 +268,28 @@ mod tests {
             results
         }
 
+        fn statistics_report_for(
+            ti: usize,
+            tg: usize,
+            gmed: usize,
+            gavg: f64,
+            min: usize,
+            max: usize,
+        ) -> String {
+            format!(
+                "Statistics:\n  \
+                      Total items: {}\n  \
+                      Total groups: {}\n\
+                      \n  \
+                      Group size:\n    \
+                        Median: {}\n    \
+                        Average: {:.2}\n    \
+                        Min: {}\n    \
+                        Max: {}\n",
+                ti, tg, gmed, gavg, min, max,
+            )
+        }
+
         mod with_results {
             use super::*;
 
@@ -318,18 +340,12 @@ mod tests {
 
                         write_results(&mut output, &map, &None, &options);
 
-                        let expected = String::from(
+                        let expected = format!(
                             "Cats (2 items)\n\
                             Dogs (2 items)\n\
                             \n\
-                            Statistics:\n  \
-                              Total items: 4\n  \
-                              Total groups: 2\n\n  \
-                              Group size:\n    \
-                              Median: 2\n    \
-                              Average: 2.00\n    \
-                              Min: 2\n    \
-                              Max: 2\n\n",
+                            {}\n",
+                            statistics_report_for(4, 2, 2, 2.00, 2, 2),
                         );
                         let actual = String::from_utf8_lossy(&output);
                         assert_eq!(expected, actual);
@@ -368,7 +384,7 @@ mod tests {
 
                         write_results(&mut output, &map, &None, &options);
 
-                        let expected = String::from(
+                        let expected = format!(
                             "Cats: (2 items)\n\
                             Meowser\n\
                             Mittens\n\
@@ -376,15 +392,8 @@ mod tests {
                             Lassy\n\
                             Buddy\n\
                             \n\
-                            Statistics:\n  \
-                              Total items: 4\n  \
-                              Total groups: 2\n\
-                              \n  \
-                              Group size:\n    \
-                                Median: 2\n    \
-                                Average: 2.00\n    \
-                                Min: 2\n    \
-                                Max: 2\n\n",
+                            {}\n",
+                            statistics_report_for(4, 2, 2, 2.00, 2, 2)
                         );
                         let actual = String::from_utf8_lossy(&output);
                         assert_eq!(expected, actual);

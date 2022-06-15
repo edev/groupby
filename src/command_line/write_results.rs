@@ -129,6 +129,11 @@ pub fn write_results<'a, 'b, M, O>(
             }
         }
     }
+
+    if options.stats {
+        writer.write("");
+        writer.write(&statistics_for(map));
+    }
 }
 
 /// Provides a human-readable description of the length of a vector, like "1 item" or "48 items".
@@ -138,6 +143,57 @@ pub fn item_count<_T>(items: &Vec<_T>) -> String {
     } else {
         format!("{} items", items.len())
     }
+}
+
+/// Reports statistics for a given [GroupedCollection].
+pub fn statistics_for<M>(map: &M) -> String
+where
+    M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
+{
+    // We'll reuse this time and time again, so might as well cache it and sort it.
+    let mut group_sizes: Vec<usize> = map.iter().map(|(_, items)| items.len()).collect();
+    group_sizes.sort_unstable();
+    let group_sizes = group_sizes;
+
+    // Total items across all groups.
+    let total_items: usize = group_sizes.iter().sum();
+
+    // Number of groups in the collection.
+    let total_groups: usize = group_sizes.len();
+
+    // Smallest group size.
+    let group_size_min: usize = group_sizes.iter().min().copied().unwrap_or(0);
+
+    // Largest group size.
+    let group_size_max: usize = group_sizes.iter().max().copied().unwrap_or(0);
+
+    // Lower median group size.
+    let group_size_median: usize = group_sizes.get(group_sizes.len() / 2).copied().unwrap_or(0);
+
+    // Average group size.
+    let group_size_average: f64 = if total_groups == 0 {
+        0.00
+    } else {
+        total_items as f64 / total_groups as f64
+    };
+
+    format!(
+        "Statistics:\n  \
+          Total items: {}\n  \
+          Total groups: {}\n\
+          \n  \
+          Group size:\n    \
+            Median: {}\n    \
+            Average: {:.2}\n    \
+            Min: {}\n    \
+            Max: {}\n",
+        total_items,
+        total_groups,
+        group_size_median,
+        group_size_average,
+        group_size_min,
+        group_size_max
+    )
 }
 
 #[cfg(test)]
@@ -262,7 +318,19 @@ mod tests {
 
                         write_results(&mut output, &map, &None, &options);
 
-                        let expected = "Cats (2 items)\nDogs (2 items)\n".to_string();
+                        let expected = String::from(
+                            "Cats (2 items)\n\
+                            Dogs (2 items)\n\
+                            \n\
+                            Statistics:\n  \
+                              Total items: 4\n  \
+                              Total groups: 2\n\n  \
+                              Group size:\n    \
+                              Median: 2\n    \
+                              Average: 2.00\n    \
+                              Min: 2\n    \
+                              Max: 2\n\n",
+                        );
                         let actual = String::from_utf8_lossy(&output);
                         assert_eq!(expected, actual);
                     }
@@ -301,7 +369,22 @@ mod tests {
                         write_results(&mut output, &map, &None, &options);
 
                         let expected = String::from(
-                            "Cats: (2 items)\nMeowser\nMittens\nDogs: (2 items)\nLassy\nBuddy\n",
+                            "Cats: (2 items)\n\
+                            Meowser\n\
+                            Mittens\n\
+                            Dogs: (2 items)\n\
+                            Lassy\n\
+                            Buddy\n\
+                            \n\
+                            Statistics:\n  \
+                              Total items: 4\n  \
+                              Total groups: 2\n\
+                              \n  \
+                              Group size:\n    \
+                                Median: 2\n    \
+                                Average: 2.00\n    \
+                                Min: 2\n    \
+                                Max: 2\n\n",
                         );
                         let actual = String::from_utf8_lossy(&output);
                         assert_eq!(expected, actual);
@@ -353,6 +436,68 @@ mod tests {
                 let actual = item_count(&(0..i).collect());
                 assert_eq!(expected, actual);
             }
+        }
+    }
+
+    mod statistics_for {
+        use super::*;
+
+        #[test]
+        fn works_with_empty_collection() {
+            assert_eq!(
+                statistics_for(&BTreeMap::new()),
+                "Statistics:\n  \
+                  Total items: 0\n  \
+                  Total groups: 0\n\
+                  \n  \
+                  Group size:\n    \
+                    Median: 0\n    \
+                    Average: 0.00\n    \
+                    Min: 0\n    \
+                    Max: 0\n",
+            );
+        }
+
+        #[test]
+        fn works_with_integral_average() {
+            let mut map = BTreeMap::new();
+            map.insert("A".to_string(), vec![]);
+            map.insert("B".to_string(), vec!["1".to_string(), "2".to_string()]);
+            map.insert("C".to_string(), (1..=4).map(|i| i.to_string()).collect());
+
+            assert_eq!(
+                statistics_for(&map),
+                "Statistics:\n  \
+                  Total items: 6\n  \
+                  Total groups: 3\n\
+                  \n  \
+                  Group size:\n    \
+                    Median: 2\n    \
+                    Average: 2.00\n    \
+                    Min: 0\n    \
+                    Max: 4\n",
+            );
+        }
+
+        #[test]
+        fn works_with_rounded_rational_average() {
+            let mut map = BTreeMap::new();
+            map.insert("A".to_string(), vec![]);
+            map.insert("B".to_string(), vec!["1".to_string(), "2".to_string()]);
+            map.insert("C".to_string(), (1..=3).map(|i| i.to_string()).collect());
+
+            assert_eq!(
+                statistics_for(&map),
+                "Statistics:\n  \
+                  Total items: 5\n  \
+                  Total groups: 3\n\
+                  \n  \
+                  Group size:\n    \
+                    Median: 2\n    \
+                    Average: 1.67\n    \
+                    Min: 0\n    \
+                    Max: 3\n",
+            );
         }
     }
 }

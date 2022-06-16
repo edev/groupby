@@ -28,14 +28,15 @@
 //!
 //! **Outputting results:**
 //!
-//! 1. If [GroupByOptions] requests to run a command against each group, call [run()]
-//!    once for each group. Write each group to the standard input for its command (following the
-//!    options specified in [GroupByOptions::output]). Record each command's standard output using
-//!    [command_runner::report].
+//! 1. [run_command()]: If [GroupByOptions] requests to run a command against each group, call
+//!    [run()] once for each group. Write each group to the standard input for its command
+//!    (following the options specified in [GroupByOptions::output]). Record each command's
+//!    standard output using [command_runner::report].
 //!
-//! 1. Print either the command results from the previous step or the contents of the
-//!    [GroupedCollection]. In the latter case, follow the options specified in
-//!    [GroupByOptions::output].
+//! 1. [write_results()]: If [run_command()] returned a collection of captured standard outputs,
+//!    print each group's captured output, using sensible default options for human consumption.
+//!    Otherwise, print the contents of the [GroupedCollection], following the options specified
+//!    in [GroupByOptions::output].
 //!
 //! [clap]: https://crates.io/crates/clap
 //! [groupby]: https://github.com/edev/groupby/tree/master/src/bin/groupby.rs

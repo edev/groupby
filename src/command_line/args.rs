@@ -363,6 +363,12 @@ impl CommandBuilder {
             Arg::new("output_only_group_names")
                 .long("only-group-names")
                 .help("Output only group names, omitting group contents.")
+                .long_help(
+                    "Output only group names, omitting group contents.\n\
+                    \n\
+                    When used with -c, passes the name of each group to its command instead of \
+                    passing the group's contents."
+                )
         )
     }
 
@@ -565,6 +571,9 @@ GENERAL OUTPUT OPTIONS:
 
         --only-group-names
             Output only group names, omitting group contents.
+            
+            When used with -c, passes the name of each group to its command instead of passing the
+            group's contents.
 
         --stats
             Print an item count for each group, plus statistics about the overall collection, in

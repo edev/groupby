@@ -77,6 +77,13 @@ pub struct OutputOptions {
     /// to accommodate specific final output requirements for program output.
     pub run_command: Option<String>,
 
+    /// Whether to print a header for each group with final output.
+    ///
+    /// When [OutputOptions::run_command] is a `Some` value, the commands' behavior is not affected;
+    /// instead, this option controls whether the final output, i.e. the printing of commands'
+    /// results, includes headers for each group or just each group's contents back-to-back.
+    pub headers: bool,
+
     /// Print statistics: an item count for each group and stats about the collection overall.
     /// Not affected by run_command.
     pub stats: bool,

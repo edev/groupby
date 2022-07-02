@@ -242,6 +242,7 @@ mod tests {
                     separator: Separator::Line,
                     only_group_names,
                     run_command,
+                    headers: true,
                     stats: false,
                 },
             }

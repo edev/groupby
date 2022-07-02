@@ -94,12 +94,15 @@ where
         // Option<String>, so we can't just unwrap.
         let run_command = matches.value_of("output_run_command").map(str::to_string);
 
+        let headers = !matches.is_present("output_no_headers");
+
         let stats = matches.is_present("output_stats");
 
         output = OutputOptions {
             separator,
             only_group_names,
             run_command,
+            headers,
             stats,
         };
     }
@@ -350,6 +353,25 @@ mod tests {
                 None,
             );
         }
+
+        #[test]
+        fn parses_output_no_headers() {
+            // No short option
+
+            // Long
+            parses(
+                &vec!["app", "-f1"],
+                |gbo: GroupByOptions| gbo.output.headers,
+                true,
+            );
+            parses(
+                &vec!["app", "--no-headers", "-f1"],
+                |gbo: GroupByOptions| gbo.output.headers,
+                false,
+            );
+        }
+
+        // TODO Write missing test parses_stats
     }
 
     #[cfg(test)]

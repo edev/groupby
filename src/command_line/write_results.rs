@@ -24,6 +24,7 @@
 //!     separator: Separator::Line,
 //!     only_group_names: false,
 //!     run_command: None,
+//!     headers: true,
 //!     stats: false,
 //! };
 //!
@@ -56,6 +57,7 @@ pub fn default_output_options(base: &OutputOptions) -> OutputOptions {
         separator: Separator::Line,
         only_group_names: false,
         run_command: None,
+        headers: base.headers,
         stats: base.stats,
     }
 }
@@ -211,15 +213,38 @@ mod tests {
                 separator: Separator::Null,
                 only_group_names: true,
                 run_command: Some("command".to_string()),
+                headers: false,
                 stats: false,
             };
             let expected = OutputOptions {
                 separator: Separator::Line,
                 only_group_names: false,
                 run_command: None,
+                headers: false,
                 stats: false,
             };
             assert_eq!(expected, default_output_options(&unsafe_base));
+        }
+
+        #[test]
+        fn preserves_headers() {
+            for val in [false, true] {
+                let unsafe_base = OutputOptions {
+                    separator: Separator::Null,
+                    only_group_names: true,
+                    run_command: Some("command".to_string()),
+                    headers: val,
+                    stats: true,
+                };
+                let expected = OutputOptions {
+                    separator: Separator::Line,
+                    only_group_names: false,
+                    run_command: None,
+                    headers: val,
+                    stats: true,
+                };
+                assert_eq!(expected, default_output_options(&unsafe_base));
+            }
         }
 
         #[test]
@@ -229,12 +254,14 @@ mod tests {
                     separator: Separator::Null,
                     only_group_names: true,
                     run_command: Some("command".to_string()),
+                    headers: true,
                     stats: val,
                 };
                 let expected = OutputOptions {
                     separator: Separator::Line,
                     only_group_names: false,
                     run_command: None,
+                    headers: true,
                     stats: val,
                 };
                 assert_eq!(expected, default_output_options(&unsafe_base));
@@ -245,11 +272,12 @@ mod tests {
     mod write_results {
         use super::*;
 
-        fn options_for(only_group_names: bool, stats: bool) -> OutputOptions {
+        fn options_for(only_group_names: bool, headers: bool, stats: bool) -> OutputOptions {
             OutputOptions {
                 separator: Separator::Line,
                 only_group_names,
                 run_command: None,
+                headers,
                 stats,
             }
         }
@@ -296,7 +324,7 @@ mod tests {
             #[test]
             fn writes_results_using_default_options() {
                 let mut output: Vec<u8> = vec![];
-                let mut options = options_for(true, false); // write_results should ignore `true`.
+                let mut options = options_for(true, true, false);
                 options.separator = Separator::Null; // write_results should ignore this.
                 let map = map();
                 let results = Some(results(&map));
@@ -315,7 +343,7 @@ mod tests {
             #[test]
             fn uses_output_separator() {
                 let mut output: Vec<u8> = vec![];
-                let mut options = options_for(false, false);
+                let mut options = options_for(false, true, false);
                 options.separator = Separator::Null;
                 let map = map();
 
@@ -335,7 +363,7 @@ mod tests {
                     #[test]
                     fn works() {
                         let mut output: Vec<u8> = vec![];
-                        let options = options_for(true, true);
+                        let options = options_for(true, true, true);
                         let map = map();
 
                         write_results(&mut output, &map, &None, &options);
@@ -358,7 +386,7 @@ mod tests {
                     #[test]
                     fn works() {
                         let mut output: Vec<u8> = vec![];
-                        let options = options_for(true, false);
+                        let options = options_for(true, true, false);
                         let map = map();
 
                         write_results(&mut output, &map, &None, &options);
@@ -379,7 +407,7 @@ mod tests {
                     #[test]
                     fn works() {
                         let mut output: Vec<u8> = vec![];
-                        let options = options_for(false, true);
+                        let options = options_for(false, true, true);
                         let map = map();
 
                         write_results(&mut output, &map, &None, &options);
@@ -406,7 +434,7 @@ mod tests {
                     #[test]
                     fn works() {
                         let mut output: Vec<u8> = vec![];
-                        let options = options_for(false, false);
+                        let options = options_for(false, true, false);
                         let map = map();
 
                         write_results(&mut output, &map, &None, &options);

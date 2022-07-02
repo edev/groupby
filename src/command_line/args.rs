@@ -345,6 +345,7 @@ impl CommandBuilder {
     /// Adds a section for general output options.
     pub fn output_options(self) -> Self {
         self.output_options_header()
+            .output_no_headers()
             .output_only_group_names()
             .output_run_command()
             .output_stats()
@@ -353,6 +354,22 @@ impl CommandBuilder {
     /// Adds the general output options header.
     pub fn output_options_header(self) -> Self {
         build!(self, next_help_heading, "GENERAL OUTPUT OPTIONS")
+    }
+
+    /// Adds an option to skip outputting group names at final output. No interaction with -c.
+    pub fn output_no_headers(self) -> Self {
+        build!(
+            self,
+            arg,
+            Arg::new("output_no_headers")
+                .long("no-headers")
+                .help("At final output, do not print group headers. Does not affect -c.")
+                .long_help(
+                    "When printing final output, do not print a header before each group. Only print the final output for each group, back-to-back. Groups are still sorted by group name.\n\
+                    \n\
+                    When used with -c, commands are not affected in any way. The only difference is that final results will be printed back-to-back, with no delimiter between them. This may be useful for chaining terminal filters on this program's stdout."
+                )
+        )
     }
 
     /// Adds an option to output only group names, omitting group contents.
@@ -388,11 +405,13 @@ impl CommandBuilder {
                 .long_help(
                     "Execute cmd as a shell command for each group, passing the group via standard \
                     input, one match per line. Each command runs as a command in the shell \
-                    specified by the SHELL variable, just as if you had written $SHELL -c \"cmd\".
+                    specified by the SHELL variable, just as if you had written $SHELL -c \
+                    \"cmd\". After all commands are run, the output for each group's command will \
+                    be printed instead of the group's contents.\n\
                     \n\
-                    When you use this option, other output options affect the way each group is \
-                    passed to a command's standard input. When printing the outputs of the commands, \
-                    groupby uses the default formatting options.\n\
+                    When you use this option, most other output options affect the way each group \
+                    is passed to a command's standard input. When printing the outputs of the \
+                    commands, groupby resets most output-formatting options to their defaults.\n\
                     \n\
                     The commands are run in parallel and may run in arbitrary order. The commands' \
                     outputs are printed in order by group name."
@@ -470,6 +489,7 @@ OUTPUT SEPARATOR OPTIONS (choose zero or one):
 
 GENERAL OUTPUT OPTIONS:
     -c, --run-command <cmd>    Execute command cmd for each group, passing the group via stdin.
+        --no-headers           At final output, do not print group headers. Does not affect -c.
         --only-group-names     Output only group names, omitting group contents.
         --stats                Print statistics about groups alongside normal output.\n",
                 env!("CARGO_PKG_VERSION")
@@ -560,14 +580,23 @@ GENERAL OUTPUT OPTIONS:
     -c, --run-command <cmd>
             Execute cmd as a shell command for each group, passing the group via standard input, one
             match per line. Each command runs as a command in the shell specified by the SHELL
-            variable, just as if you had written $SHELL -c \"cmd\".
+            variable, just as if you had written $SHELL -c \"cmd\". After all commands are run, the
+            output for each group's command will be printed instead of the group's contents.
             
-            When you use this option, other output options affect the way each group is passed to a
-            command's standard input. When printing the outputs of the commands, groupby uses the
-            default formatting options.
+            When you use this option, most other output options affect the way each group is passed
+            to a command's standard input. When printing the outputs of the commands, groupby resets
+            most output-formatting options to their defaults.
             
             The commands are run in parallel and may run in arbitrary order. The commands' outputs
             are printed in order by group name.
+
+        --no-headers
+            When printing final output, do not print a header before each group. Only print the
+            final output for each group, back-to-back. Groups are still sorted by group name.
+            
+            When used with -c, commands are not affected in any way. The only difference is that
+            final results will be printed back-to-back, with no delimiter between them. This may be
+            useful for chaining terminal filters on this program's stdout.
 
         --only-group-names
             Output only group names, omitting group contents.

@@ -106,6 +106,9 @@ pub fn write_results<'a, 'b, M, O>(
 
     for (key, values) in map.iter() {
         if options.only_group_names {
+            // Group names are replacing group conents, so we don't count them as headers. This
+            // means that options.headers does not apply, so there is no corresponding logic here.
+
             if options.stats {
                 writer.write(&format!("{} ({})", key, item_count(values)));
             } else {
@@ -113,10 +116,12 @@ pub fn write_results<'a, 'b, M, O>(
             }
         } else {
             // Write header
-            if options.stats {
-                writer.write(&format!("{}: ({})", key, item_count(values)));
-            } else {
-                writer.write(&format!("{}:", key));
+            if options.headers {
+                if options.stats {
+                    writer.write(&format!("{}: ({})", key, item_count(values)));
+                } else {
+                    writer.write(&format!("{}:", key));
+                }
             }
 
             // If there's a result set (from running a command over each group), write it as the
@@ -272,6 +277,18 @@ mod tests {
     mod write_results {
         use super::*;
 
+        // Returns an empty buffer. Instead of writing:
+        //
+        //     let mut output: Vec<u8> = vec![];
+        //
+        // tests can write:
+        //
+        //     let mut output = buffer();
+        fn buffer() -> Vec<u8> {
+            vec![]
+        }
+
+        // Returns an OutputOptions suitable for the given case.
         fn options_for(only_group_names: bool, headers: bool, stats: bool) -> OutputOptions {
             OutputOptions {
                 separator: Separator::Line,
@@ -296,6 +313,7 @@ mod tests {
             results
         }
 
+        // Generates a statistics report in the proper format, given a set of raw numbers.
         fn statistics_report_for(
             ti: usize,
             tg: usize,
@@ -318,131 +336,162 @@ mod tests {
             )
         }
 
-        mod with_results {
+        // This test verifies that when results is a Some value, options is masked with default
+        // values. It also verifies that results, rather than group contents, are printed at the
+        // end. We otherwise assume correct behavior throughout write_results() for the purpose of
+        // this test.
+        #[test]
+        fn with_results_writes_results_using_default_options() {
+            let mut output = buffer();
+            let mut options = options_for(true, true, false);
+            options.separator = Separator::Null; // write_results should ignore this.
+            let map = map();
+            let results = Some(results(&map));
+
+            write_results(&mut output, &map, &results, &options);
+
+            let expected = "Cats:\nstaC\nDogs:\nsgoD\n".to_string();
+            let actual = String::from_utf8_lossy(&output);
+            assert_eq!(expected, actual);
+        }
+
+        // The tests below verify all the other logic of write_results(). The code these cases test
+        // applies equally to either the original options struct (if results == &None) or to an
+        // options struct masked with default values (if results is a Some value); these tests,
+        // like the function under test, do not care how the options sturct was formed. The tests
+        // below are organized similarly to the function under test.
+
+        #[test]
+        fn uses_output_separator() {
+            let mut output = buffer();
+            let mut options = options_for(false, true, false);
+            options.separator = Separator::Null;
+            let map = map();
+
+            write_results(&mut output, &map, &None, &options);
+
+            let expected = "Cats:\0Meowser\0Mittens\0Dogs:\0Lassy\0Buddy\0".to_string();
+            let actual = String::from_utf8_lossy(&output);
+            assert_eq!(expected, actual);
+        }
+
+        mod with_only_group_names {
             use super::*;
 
+            // options.headers is irrelevant here, since group names are printed without headers in
+            // this case.
+
             #[test]
-            fn writes_results_using_default_options() {
-                let mut output: Vec<u8> = vec![];
-                let mut options = options_for(true, true, false);
-                options.separator = Separator::Null; // write_results should ignore this.
+            fn with_stats_works() {
+                let mut output = buffer();
+                let options = options_for(true, true, true);
                 let map = map();
-                let results = Some(results(&map));
 
-                write_results(&mut output, &map, &results, &options);
+                write_results(&mut output, &map, &None, &options);
 
-                let expected = "Cats:\nstaC\nDogs:\nsgoD\n".to_string();
+                let expected = format!(
+                    "Cats (2 items)\n\
+                    Dogs (2 items)\n\
+                    \n\
+                    {}\n",
+                    statistics_report_for(4, 2, 2, 2.00, 2, 2),
+                );
+                let actual = String::from_utf8_lossy(&output);
+                assert_eq!(expected, actual);
+            }
+
+            #[test]
+            fn without_stats_works() {
+                let mut output = buffer();
+                let options = options_for(true, false, false);
+                let map = map();
+
+                write_results(&mut output, &map, &None, &options);
+
+                let expected = "Cats\nDogs\n".to_string();
                 let actual = String::from_utf8_lossy(&output);
                 assert_eq!(expected, actual);
             }
         }
 
-        mod without_results {
+        mod without_only_group_names {
             use super::*;
 
-            #[test]
-            fn uses_output_separator() {
-                let mut output: Vec<u8> = vec![];
-                let mut options = options_for(false, true, false);
-                options.separator = Separator::Null;
-                let map = map();
-
-                write_results(&mut output, &map, &None, &options);
-
-                let expected = "Cats:\0Meowser\0Mittens\0Dogs:\0Lassy\0Buddy\0".to_string();
-                let actual = String::from_utf8_lossy(&output);
-                assert_eq!(expected, actual);
-            }
-
-            mod with_only_group_names {
+            mod with_headers {
                 use super::*;
 
-                mod with_stats {
-                    use super::*;
+                #[test]
+                fn with_stats_works() {
+                    let mut output = buffer();
+                    let options = options_for(false, true, true);
+                    let map = map();
 
-                    #[test]
-                    fn works() {
-                        let mut output: Vec<u8> = vec![];
-                        let options = options_for(true, true, true);
-                        let map = map();
+                    write_results(&mut output, &map, &None, &options);
 
-                        write_results(&mut output, &map, &None, &options);
-
-                        let expected = format!(
-                            "Cats (2 items)\n\
-                            Dogs (2 items)\n\
-                            \n\
-                            {}\n",
-                            statistics_report_for(4, 2, 2, 2.00, 2, 2),
-                        );
-                        let actual = String::from_utf8_lossy(&output);
-                        assert_eq!(expected, actual);
-                    }
+                    let expected = format!(
+                        "Cats: (2 items)\n\
+                        Meowser\n\
+                        Mittens\n\
+                        Dogs: (2 items)\n\
+                        Lassy\n\
+                        Buddy\n\
+                        \n\
+                        {}\n",
+                        statistics_report_for(4, 2, 2, 2.00, 2, 2)
+                    );
+                    let actual = String::from_utf8_lossy(&output);
+                    assert_eq!(expected, actual);
                 }
 
-                mod without_stats {
-                    use super::*;
+                #[test]
+                fn without_stats_works() {
+                    let mut output = buffer();
+                    let options = options_for(false, true, false);
+                    let map = map();
 
-                    #[test]
-                    fn works() {
-                        let mut output: Vec<u8> = vec![];
-                        let options = options_for(true, true, false);
-                        let map = map();
+                    write_results(&mut output, &map, &None, &options);
 
-                        write_results(&mut output, &map, &None, &options);
-
-                        let expected = "Cats\nDogs\n".to_string();
-                        let actual = String::from_utf8_lossy(&output);
-                        assert_eq!(expected, actual);
-                    }
+                    let expected = "Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_string();
+                    let actual = String::from_utf8_lossy(&output);
+                    assert_eq!(expected, actual);
                 }
             }
 
-            mod without_only_group_names {
+            mod without_headers {
                 use super::*;
 
-                mod with_stats {
-                    use super::*;
+                #[test]
+                fn with_stats_works() {
+                    let mut output = buffer();
+                    let options = options_for(false, false, true);
+                    let map = map();
 
-                    #[test]
-                    fn works() {
-                        let mut output: Vec<u8> = vec![];
-                        let options = options_for(false, true, true);
-                        let map = map();
+                    write_results(&mut output, &map, &None, &options);
 
-                        write_results(&mut output, &map, &None, &options);
-
-                        let expected = format!(
-                            "Cats: (2 items)\n\
-                            Meowser\n\
-                            Mittens\n\
-                            Dogs: (2 items)\n\
-                            Lassy\n\
-                            Buddy\n\
-                            \n\
-                            {}\n",
-                            statistics_report_for(4, 2, 2, 2.00, 2, 2)
-                        );
-                        let actual = String::from_utf8_lossy(&output);
-                        assert_eq!(expected, actual);
-                    }
+                    let expected = format!(
+                        "Meowser\n\
+                        Mittens\n\
+                        Lassy\n\
+                        Buddy\n\
+                        \n\
+                        {}\n",
+                        statistics_report_for(4, 2, 2, 2.00, 2, 2)
+                    );
+                    let actual = String::from_utf8_lossy(&output);
+                    assert_eq!(expected, actual);
                 }
 
-                mod without_stats {
-                    use super::*;
+                #[test]
+                fn without_stats_works() {
+                    let mut output = buffer();
+                    let options = options_for(false, false, false);
+                    let map = map();
 
-                    #[test]
-                    fn works() {
-                        let mut output: Vec<u8> = vec![];
-                        let options = options_for(false, true, false);
-                        let map = map();
+                    write_results(&mut output, &map, &None, &options);
 
-                        write_results(&mut output, &map, &None, &options);
-
-                        let expected = "Cats:\nMeowser\nMittens\nDogs:\nLassy\nBuddy\n".to_string();
-                        let actual = String::from_utf8_lossy(&output);
-                        assert_eq!(expected, actual);
-                    }
+                    let expected = "Meowser\nMittens\nLassy\nBuddy\n".to_string();
+                    let actual = String::from_utf8_lossy(&output);
+                    assert_eq!(expected, actual);
                 }
             }
         }

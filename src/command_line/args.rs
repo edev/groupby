@@ -34,6 +34,7 @@ pub fn command(command: Cmd) -> Cmd {
         .about()
         .input_split_options()
         .grouping_options()
+        .grouper_options()
         .output_separator_options()
         .output_options()
         .command
@@ -289,6 +290,32 @@ impl CommandBuilder {
         )
     }
 
+    /// Adds a section for customizing the behavior of groupers.
+    pub fn grouper_options(self) -> Self {
+        self.grouper_options_heading()
+            .grouper_options_capture_group()
+    }
+
+    /// Adds the grouper options heading.
+    pub fn grouper_options_heading(self) -> Self {
+        build!(self, next_help_heading, "GROUPER OPTIONS")
+    }
+
+    /// Adds an option to specify a capture group number or name when using a regex grouper.
+    pub fn grouper_options_capture_group(self) -> Self {
+        build!(
+            self,
+            arg,
+            Arg::new("grouper_options_capture_group")
+                .long("capture-group")
+                .help("When used with -r, match a specific capture group by number or name.")
+                .long_help(
+                    "When used with -r, match a specific capture group by number or name. Group \
+                    number 0 matches the entire pattern."
+                )
+        )
+    }
+
     /// Adds a section for output options.
     pub fn output_separator_options(self) -> Self {
         self.output_separator_heading()
@@ -500,6 +527,9 @@ GROUPERS (choose exactly one):
     -l <n>                   Group by equivalence on the last n characters.
     -r, --regex <pattern>    Group by equivalence on the first match against the specified pattern.
 
+GROUPER OPTIONS:
+        --capture-group    When used with -r, match a specific capture group by number or name.
+
 OUTPUT SEPARATOR OPTIONS (choose zero or one):
         --print0        When outputting lines, separate them with a null character, not a newline.
         --printspace    When outputting lines, separate them with a space rather than a newline.
@@ -585,6 +615,11 @@ GROUPERS (choose exactly one):
             Group by equivalence on the first match against the specified regex pattern. If capture
             groups are present, group by equivalence on the first capture group. If a line does not
             match, it is stored in the blank group, \"\".
+
+GROUPER OPTIONS:
+        --capture-group
+            When used with -r, match a specific capture group by number or name. Group number 0
+            matches the entire pattern.
 
 OUTPUT SEPARATOR OPTIONS (choose zero or one):
         --print0

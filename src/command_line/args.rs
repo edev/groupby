@@ -33,7 +33,7 @@ pub fn command(command: Cmd) -> Cmd {
     CommandBuilder::new(command)
         .about()
         .input_split_options()
-        .grouping_options()
+        .groupers()
         .grouper_options()
         .output_separator_options()
         .output_options()
@@ -178,27 +178,27 @@ impl CommandBuilder {
     }
 
     /// Adds a section for choosing a grouper.
-    pub fn grouping_options(self) -> Self {
-        self.grouping_heading()
-            .group_by_first_chars()
-            .group_by_last_chars()
-            .group_by_regex()
-            .group_by_file_extension()
-            .group_by_counter()
+    pub fn groupers(self) -> Self {
+        self.groupers_heading()
+            .groupers_by_first_chars()
+            .groupers_by_last_chars()
+            .groupers_by_regex()
+            .groupers_by_file_extension()
+            .groupers_by_counter()
             .group_groupers()
     }
 
     /// Adds the grouper heading.
-    pub fn grouping_heading(self) -> Self {
+    pub fn groupers_heading(self) -> Self {
         build!(self, next_help_heading, "GROUPERS (choose exactly one)")
     }
 
     /// Adds an option to specify the [crate::groupers::string::Groupers::group_by_first_chars] grouper.
-    pub fn group_by_first_chars(self) -> Self {
+    pub fn groupers_by_first_chars(self) -> Self {
         build!(
             self,
             arg,
-            Arg::new("group_by_first_chars")
+            Arg::new("groupers_by_first_chars")
                 .short('f')
                 .value_name("n")
                 .takes_value(true)
@@ -207,11 +207,11 @@ impl CommandBuilder {
     }
 
     /// Adds an option to specify the [crate::groupers::string::Groupers::group_by_last_chars] grouper.
-    pub fn group_by_last_chars(self) -> Self {
+    pub fn groupers_by_last_chars(self) -> Self {
         build!(
             self,
             arg,
-            Arg::new("group_by_last_chars")
+            Arg::new("groupers_by_last_chars")
                 .short('l')
                 .value_name("n")
                 .takes_value(true)
@@ -220,11 +220,11 @@ impl CommandBuilder {
     }
 
     /// Adds an option to specify the [crate::groupers::string::Groupers::group_by_regex] grouper.
-    pub fn group_by_regex(self) -> Self {
+    pub fn groupers_by_regex(self) -> Self {
         build!(
             self,
             arg,
-            Arg::new("group_by_regex")
+            Arg::new("groupers_by_regex")
                 .short('r')
                 .long("regex")
                 .value_name("pattern")
@@ -240,11 +240,11 @@ impl CommandBuilder {
 
     /// Adds an option to specify the [crate::groupers::string::Groupers::group_by_file_extension]
     /// grouper.
-    pub fn group_by_file_extension(self) -> Self {
+    pub fn groupers_by_file_extension(self) -> Self {
         build!(
             self,
             arg,
-            Arg::new("group_by_file_extension")
+            Arg::new("groupers_by_file_extension")
                 .long("extension")
                 .help("Group by file extension (excluding the leading period).")
                 .long_help(
@@ -258,11 +258,11 @@ impl CommandBuilder {
     }
 
     /// Adds an option to specify the [crate::groupers::string::Groupers::group_by_counter] grouper.
-    pub fn group_by_counter(self) -> Self {
+    pub fn groupers_by_counter(self) -> Self {
         build!(
             self,
             arg,
-            Arg::new("group_by_counter")
+            Arg::new("groupers_by_counter")
                 .long("counter")
                 .help("Place each token in its own, numbered group, starting from 0.")
                 .long_help(
@@ -280,11 +280,11 @@ impl CommandBuilder {
             group,
             ArgGroup::new("groupers")
                 .args(&[
-                    "group_by_first_chars",
-                    "group_by_last_chars",
-                    "group_by_regex",
-                    "group_by_file_extension",
-                    "group_by_counter",
+                    "groupers_by_first_chars",
+                    "groupers_by_last_chars",
+                    "groupers_by_regex",
+                    "groupers_by_file_extension",
+                    "groupers_by_counter",
                 ])
                 .required(true)
         )

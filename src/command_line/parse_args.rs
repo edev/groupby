@@ -45,18 +45,18 @@ where
     };
 
     // Parse grouping specifier.
-    let grouping = if matches.is_present("group_by_first_chars") {
-        let n = parse_numeric_value(&matches, "group_by_first_chars");
+    let grouping = if matches.is_present("groupers_by_first_chars") {
+        let n = parse_numeric_value(&matches, "groupers_by_first_chars");
         GroupingSpecifier::FirstChars(n)
-    } else if matches.is_present("group_by_last_chars") {
-        let n = parse_numeric_value(&matches, "group_by_last_chars");
+    } else if matches.is_present("groupers_by_last_chars") {
+        let n = parse_numeric_value(&matches, "groupers_by_last_chars");
         GroupingSpecifier::LastChars(n)
-    } else if matches.is_present("group_by_regex") {
-        let re = parse_regex_value(&matches, "group_by_regex");
+    } else if matches.is_present("groupers_by_regex") {
+        let re = parse_regex_value(&matches, "groupers_by_regex");
         GroupingSpecifier::Regex(re)
-    } else if matches.is_present("group_by_file_extension") {
+    } else if matches.is_present("groupers_by_file_extension") {
         GroupingSpecifier::FileExtension
-    } else if matches.is_present("group_by_counter") {
+    } else if matches.is_present("groupers_by_counter") {
         GroupingSpecifier::Counter
     } else {
         panic!(
@@ -226,7 +226,7 @@ mod tests {
         }
 
         #[test]
-        fn parses_group_by_first_chars() {
+        fn parses_groupers_by_first_chars() {
             // Short
             parses(
                 &vec!["app", "-w", "-f8"],
@@ -237,7 +237,7 @@ mod tests {
         }
 
         #[test]
-        fn parses_group_by_last_chars() {
+        fn parses_groupers_by_last_chars() {
             // Short
             parses(
                 &vec!["app", "-w", "-l9"],
@@ -247,7 +247,7 @@ mod tests {
         }
 
         #[test]
-        fn parses_group_by_regex() {
+        fn parses_groupers_by_regex() {
             // Short
             parses(
                 &vec!["app", "-w", "-r", "foo"],
@@ -264,7 +264,7 @@ mod tests {
         }
 
         #[test]
-        fn parses_group_by_file_extension() {
+        fn parses_groupers_by_file_extension() {
             // No short option
 
             // Long
@@ -276,7 +276,7 @@ mod tests {
         }
 
         #[test]
-        fn parses_group_by_counter() {
+        fn parses_groupers_by_counter() {
             // No short option
 
             // Long
@@ -400,19 +400,19 @@ mod tests {
 
         #[test]
         fn returns_number() {
-            let clap = cb().group_by_first_chars().command;
+            let clap = cb().groupers_by_first_chars().command;
             let args = vec!["appname", "-f", "4"];
             let matches = clap.get_matches_from(args);
-            assert_eq!(4, parse_numeric_value(&matches, "group_by_first_chars"));
+            assert_eq!(4, parse_numeric_value(&matches, "groupers_by_first_chars"));
         }
 
         #[test]
         #[should_panic]
         fn panics_on_failed_parse() {
-            let clap = cb().group_by_first_chars().command;
+            let clap = cb().groupers_by_first_chars().command;
             let args = vec!["appname", "-f", "four"];
             let matches = clap.get_matches_from(args);
-            parse_numeric_value::<usize>(&matches, "group_by_first_chars");
+            parse_numeric_value::<usize>(&matches, "groupers_by_first_chars");
         }
     }
 
@@ -422,10 +422,10 @@ mod tests {
 
         #[test]
         fn returns_matching_regex() {
-            let clap = CommandBuilder::new(command!()).group_by_regex().command;
+            let clap = CommandBuilder::new(command!()).groupers_by_regex().command;
             let args = vec!["appname", "-r", "(foo)?bar"];
             let matches = clap.get_matches_from(args);
-            let re = parse_regex_value(&matches, "group_by_regex");
+            let re = parse_regex_value(&matches, "groupers_by_regex");
             assert!(re.is_match("bar"));
             assert!(re.is_match("foobar"));
             assert!(!re.is_match("soap"));
@@ -434,10 +434,10 @@ mod tests {
         #[test]
         #[should_panic(expected = "unclosed group")]
         fn panics_on_invalid_regex() {
-            let clap = CommandBuilder::new(command!()).group_by_regex().command;
+            let clap = CommandBuilder::new(command!()).groupers_by_regex().command;
             let invalid_args = vec!["appname", "-r", "(foo"];
             let matches = clap.get_matches_from(invalid_args);
-            parse_regex_value(&matches, "group_by_regex"); // Should panic.
+            parse_regex_value(&matches, "groupers_by_regex"); // Should panic.
         }
     }
 }

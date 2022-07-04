@@ -94,6 +94,8 @@ where
         // Option<String>, so we can't just unwrap.
         let run_command = matches.value_of("output_run_command").map(str::to_string);
 
+        let parallel = !matches.is_present("output_sequential");
+
         let headers = !matches.is_present("output_no_headers");
 
         let stats = matches.is_present("output_stats");
@@ -102,6 +104,7 @@ where
             separator,
             only_group_names,
             run_command,
+            parallel,
             headers,
             stats,
         };
@@ -351,6 +354,23 @@ mod tests {
                 &vec!["app", "-f1"],
                 |gbo: GroupByOptions| gbo.output.run_command,
                 None,
+            );
+        }
+
+        #[test]
+        fn parses_output_sequential() {
+            // No short option
+
+            // Long
+            parses(
+                &vec!["app", "--sequential", "-f1"],
+                |gbo: GroupByOptions| gbo.output.parallel,
+                false,
+            );
+            parses(
+                &vec!["app", "-f1"],
+                |gbo: GroupByOptions| gbo.output.parallel,
+                true,
             );
         }
 

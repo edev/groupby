@@ -56,13 +56,12 @@ pub struct ShellCommandOptions<'a> {
 /// Otherwise, runs the command over each group, using the provided options, and returns a
 /// [BTreeMap] mapping `map`'s keys to the captured standard output of each group's command.
 ///
-/// If `parallel` is `true`, runs commands in parallel across all available CPU cores. If `false`,
-/// runs one command at a time. Note that sequential commands run according to the key sort order,
-/// whereas parallel commands may run in arbitrary order.
+/// If [OutputOptions::parallel] is `true`, runs commands in parallel across all available CPU
+/// cores. If `false`, runs one command at a time. Note that sequential commands run according to
+/// the key sort order, whereas parallel commands may run in arbitrary order.
 pub fn run_command<'a, M>(
     map: &'a M,
     options: &OutputOptions,
-    parallel: bool,
 ) -> Option<BTreeMap<&'a String, Vec<u8>>>
 where
     M: for<'s> GroupedCollection<'s, String, String, Vec<String>>,
@@ -81,7 +80,7 @@ where
 
     // Run commands and capture standard output in a BTreeMap.
     let results = BTreeMap::new();
-    let results = if parallel {
+    let results = if options.parallel {
         run_commands_in_parallel(map, shell_command_options, results)
     } else {
         run_commands_sequentially(map, shell_command_options, results)
@@ -232,16 +231,22 @@ mod tests {
     mod run_command {
         use super::*;
 
-        fn options_for(run_command: Option<String>, only_group_names: bool) -> GroupByOptions {
+        fn options_for(
+            separator: Separator,
+            run_command: Option<String>,
+            only_group_names: bool,
+            parallel: bool,
+        ) -> GroupByOptions {
             GroupByOptions {
                 input: InputOptions {
                     separator: Separator::Line,
                 },
                 grouping: GroupingSpecifier::FirstChars(1),
                 output: OutputOptions {
-                    separator: Separator::Line,
+                    separator,
                     only_group_names,
                     run_command,
+                    parallel,
                     headers: true,
                     stats: false,
                 },
@@ -273,21 +278,39 @@ mod tests {
             mod with_or_without_parallel {
                 use super::*;
 
+                fn check_parallel_vs_sequential_runs(
+                    separator: Separator,
+                    command: &'static str,
+                    only_group_names: bool,
+                ) {
+                    let map = map();
+                    let parallel_options = options_for(
+                        separator.clone(),
+                        Some(String::from(command)),
+                        only_group_names,
+                        true,
+                    );
+                    let sequential_options = options_for(
+                        separator.clone(),
+                        Some(String::from(command)),
+                        only_group_names,
+                        false,
+                    );
+
+                    let expected = expected_results(&map, &separator.sep(), only_group_names);
+                    let sequential_results = run_command(&map, &sequential_options.output);
+                    let parallel_results = run_command(&map, &parallel_options.output);
+
+                    verify_results(&expected, &sequential_results.as_ref().unwrap());
+                    verify_results(&expected, &parallel_results.as_ref().unwrap());
+                }
+
                 mod with_only_group_names {
                     use super::*;
 
                     #[test]
                     fn outputs_only_group_names() {
-                        let map = map();
-                        let options = options_for(Some(String::from("cat")), true);
-
-                        let expected =
-                            expected_results(&map, &options.output.separator.sep(), true);
-                        let sequential_results = run_command(&map, &options.output, false);
-                        let parallel_results = run_command(&map, &options.output, true);
-
-                        verify_results(&expected, &sequential_results.as_ref().unwrap());
-                        verify_results(&expected, &parallel_results.as_ref().unwrap());
+                        check_parallel_vs_sequential_runs(Separator::Line, "cat", true);
                     }
                 }
 
@@ -296,31 +319,12 @@ mod tests {
 
                     #[test]
                     fn outputs_results_correctly() {
-                        let map = map();
-                        let options = options_for(Some(String::from("cat")), false);
-
-                        let expected =
-                            expected_results(&map, &options.output.separator.sep(), false);
-                        let sequential_results = run_command(&map, &options.output, false);
-                        let parallel_results = run_command(&map, &options.output, true);
-
-                        verify_results(&expected, &sequential_results.as_ref().unwrap());
-                        verify_results(&expected, &parallel_results.as_ref().unwrap());
+                        check_parallel_vs_sequential_runs(Separator::Line, "cat", false);
                     }
 
                     #[test]
                     fn uses_output_separator_correctly() {
-                        let map = map();
-                        let mut options = options_for(Some(String::from("cat")), false);
-                        options.output.separator = Separator::Space;
-
-                        let expected =
-                            expected_results(&map, &options.output.separator.sep(), false);
-                        let sequential_results = run_command(&map, &options.output, false);
-                        let parallel_results = run_command(&map, &options.output, true);
-
-                        verify_results(&expected, &sequential_results.as_ref().unwrap());
-                        verify_results(&expected, &parallel_results.as_ref().unwrap());
+                        check_parallel_vs_sequential_runs(Separator::Space, "cat", false);
                     }
                 }
             }

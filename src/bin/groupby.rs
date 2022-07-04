@@ -15,7 +15,7 @@ fn main() {
 
     // If requested, run commands over the GroupedCollection and return a map of the commands'
     // captured standard outputs.
-    let command_results = command_line::run_command(&map, &options.output, true);
+    let command_results = command_line::run_command(&map, &options.output);
 
     // Write the final results, per the user's options, to standard output.
     command_line::write_results(io::stdout(), &map, &command_results, &options.output);

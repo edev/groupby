@@ -24,6 +24,7 @@
 //!     separator: Separator::Line,
 //!     only_group_names: false,
 //!     run_command: None,
+//!     parallel: true,
 //!     headers: true,
 //!     stats: false,
 //! };
@@ -57,6 +58,7 @@ pub fn default_output_options(base: &OutputOptions) -> OutputOptions {
         separator: Separator::Line,
         only_group_names: false,
         run_command: None,
+        parallel: base.parallel,
         headers: base.headers,
         stats: base.stats,
     }
@@ -218,6 +220,7 @@ mod tests {
                 separator: Separator::Null,
                 only_group_names: true,
                 run_command: Some("command".to_string()),
+                parallel: false,
                 headers: false,
                 stats: false,
             };
@@ -225,10 +228,34 @@ mod tests {
                 separator: Separator::Line,
                 only_group_names: false,
                 run_command: None,
+                parallel: false,
                 headers: false,
                 stats: false,
             };
             assert_eq!(expected, default_output_options(&unsafe_base));
+        }
+
+        #[test]
+        fn preserves_parallel() {
+            for val in [false, true] {
+                let unsafe_base = OutputOptions {
+                    separator: Separator::Null,
+                    only_group_names: true,
+                    run_command: Some("command".to_string()),
+                    parallel: val,
+                    headers: true,
+                    stats: true,
+                };
+                let expected = OutputOptions {
+                    separator: Separator::Line,
+                    only_group_names: false,
+                    run_command: None,
+                    parallel: val,
+                    headers: true,
+                    stats: true,
+                };
+                assert_eq!(expected, default_output_options(&unsafe_base));
+            }
         }
 
         #[test]
@@ -238,6 +265,7 @@ mod tests {
                     separator: Separator::Null,
                     only_group_names: true,
                     run_command: Some("command".to_string()),
+                    parallel: true,
                     headers: val,
                     stats: true,
                 };
@@ -245,6 +273,7 @@ mod tests {
                     separator: Separator::Line,
                     only_group_names: false,
                     run_command: None,
+                    parallel: true,
                     headers: val,
                     stats: true,
                 };
@@ -259,6 +288,7 @@ mod tests {
                     separator: Separator::Null,
                     only_group_names: true,
                     run_command: Some("command".to_string()),
+                    parallel: true,
                     headers: true,
                     stats: val,
                 };
@@ -266,6 +296,7 @@ mod tests {
                     separator: Separator::Line,
                     only_group_names: false,
                     run_command: None,
+                    parallel: true,
                     headers: true,
                     stats: val,
                 };
@@ -294,6 +325,7 @@ mod tests {
                 separator: Separator::Line,
                 only_group_names,
                 run_command: None,
+                parallel: true,
                 headers,
                 stats,
             }

@@ -57,6 +57,7 @@
 //!         separator: Separator::Line,
 //!         only_group_names: false,
 //!         run_command: Some("wc -l".to_string()),
+//!         parallel: true,
 //!         headers: true,
 //!         stats: false,
 //!     },
@@ -79,7 +80,7 @@
 //!
 //! // Run `wc -l` once for each group, pass the group's contents to the group's stdin, and collect
 //! // each command's stdout in a BTreeMap.
-//! let results = command_line::run_command(&map, &options.output, true);
+//! let results = command_line::run_command(&map, &options.output);
 //!
 //! // Report the results to the output writer.
 //! command_line::write_results(&mut output, &map, &results, &options.output);

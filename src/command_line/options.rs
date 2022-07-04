@@ -77,6 +77,13 @@ pub struct OutputOptions {
     /// to accommodate specific final output requirements for program output.
     pub run_command: Option<String>,
 
+    /// If true, run commands in parallel, in arbitrary order (using work stealing).
+    ///
+    /// If false, run commands in sequence rather than in parallel, using a single thread of
+    /// execution. While much slower, this guarantees that commands run in the same order as the
+    /// groups they represent, which is sometimes necessary (e.g. for some database operations).
+    pub parallel: bool,
+
     /// Whether to print a header for each group with final output.
     ///
     /// When [OutputOptions::run_command] is a `Some` value, the commands' behavior is not affected;

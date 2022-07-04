@@ -348,6 +348,7 @@ impl CommandBuilder {
             .output_no_headers()
             .output_only_group_names()
             .output_run_command()
+            .output_sequential()
             .output_stats()
     }
 
@@ -415,6 +416,22 @@ impl CommandBuilder {
                     \n\
                     The commands are run in parallel and may run in arbitrary order. The commands' \
                     outputs are printed in order by group name."
+                )
+        )
+    }
+
+    /// Adds an option to run commands sequentially rather than in parallel.
+    pub fn output_sequential(self) -> Self {
+        build!(
+            self,
+            arg,
+            Arg::new("output_sequential")
+                .long("sequential")
+                .help("When used with -c, run commands in sequence, ordered by group name.")
+                .long_help(
+                    "When used with -c, run commands in sequence, ordered by group name, using a \
+                    single thread. This may be much slower. This option has no effect if used \
+                    without -c."
                 )
         )
     }
@@ -491,6 +508,7 @@ GENERAL OUTPUT OPTIONS:
     -c, --run-command <cmd>    Execute command cmd for each group, passing the group via stdin.
         --no-headers           At final output, do not print group headers. Does not affect -c.
         --only-group-names     Output only group names, omitting group contents.
+        --sequential           When used with -c, run commands in sequence, ordered by group name.
         --stats                Print statistics about groups alongside normal output.\n",
                 env!("CARGO_PKG_VERSION")
             )
@@ -603,6 +621,10 @@ GENERAL OUTPUT OPTIONS:
             
             When used with -c, passes the name of each group to its command instead of passing the
             group's contents.
+
+        --sequential
+            When used with -c, run commands in sequence, ordered by group name, using a single
+            thread. This may be much slower. This option has no effect if used without -c.
 
         --stats
             Print an item count for each group, plus statistics about the overall collection, in

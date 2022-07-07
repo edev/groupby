@@ -308,7 +308,9 @@ impl CommandBuilder {
             arg,
             Arg::new("grouper_options_capture_group")
                 .long("capture-group")
-                .help("When used with -r, match a specific capture group by number or name.")
+                .takes_value(true)
+                .value_name("grp")
+                .help("When used with -r, match a capture group by number or name.")
                 .long_help(
                     "When used with -r, match a specific capture group by number or name. Group \
                     number 0 matches the entire pattern."
@@ -528,7 +530,7 @@ GROUPERS (choose exactly one):
     -r, --regex <pattern>    Group by equivalence on the first match against the specified pattern.
 
 GROUPER OPTIONS:
-        --capture-group    When used with -r, match a specific capture group by number or name.
+        --capture-group <grp>    When used with -r, match a capture group by number or name.
 
 OUTPUT SEPARATOR OPTIONS (choose zero or one):
         --print0        When outputting lines, separate them with a null character, not a newline.
@@ -617,7 +619,7 @@ GROUPERS (choose exactly one):
             match, it is stored in the blank group, \"\".
 
 GROUPER OPTIONS:
-        --capture-group
+        --capture-group <grp>
             When used with -r, match a specific capture group by number or name. Group number 0
             matches the entire pattern.
 

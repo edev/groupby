@@ -53,7 +53,8 @@ where
         GroupingSpecifier::LastChars(n)
     } else if matches.is_present("groupers_by_regex") {
         let re = parse_regex_value(&matches, "groupers_by_regex");
-        GroupingSpecifier::Regex(re)
+        let cg = parse_capture_group(&matches);
+        GroupingSpecifier::Regex(re, cg)
     } else if matches.is_present("groupers_by_file_extension") {
         GroupingSpecifier::FileExtension
     } else if matches.is_present("groupers_by_counter") {
@@ -72,7 +73,7 @@ where
     match GroupingSpecifier::FirstChars(4) {
         GroupingSpecifier::FirstChars(_) => (),
         GroupingSpecifier::LastChars(_) => (),
-        GroupingSpecifier::Regex(_) => (),
+        GroupingSpecifier::Regex(_, _) => (),
         GroupingSpecifier::FileExtension => (),
         GroupingSpecifier::Counter => (),
     };
@@ -132,6 +133,20 @@ where
 pub fn parse(command: Command<'static>) -> GroupByOptions {
     // parse() wraps parse_from() so we can use dependency injection for testing.
     parse_from(command, |c| c.get_matches())
+}
+
+// Parses the capture group option, defaulting to 0 if not present.
+//
+// The capture group can be a number or a name, so if it doesn't parse as a usize, we'll assume
+// it's a name.
+fn parse_capture_group(matches: &ArgMatches) -> CaptureGroup {
+    match matches.value_of("grouper_options_capture_group") {
+        Some(s) => match s.parse() {
+            Ok(n) => CaptureGroup::Number(n),
+            Err(_) => CaptureGroup::Name(s.to_string()),
+        },
+        None => CaptureGroup::Number(0),
+    }
 }
 
 // Parses a key with a numeric value; expects that the key is present and has a value.
@@ -252,14 +267,14 @@ mod tests {
             parses(
                 &vec!["app", "-w", "-r", "foo"],
                 |gbo: GroupByOptions| gbo.grouping,
-                GroupingSpecifier::Regex(Regex::new("foo").unwrap()),
+                GroupingSpecifier::Regex(Regex::new("foo").unwrap(), CaptureGroup::Number(0)),
             );
 
             // Long
             parses(
                 &vec!["app", "-w", "--regex", "bar"],
                 |gbo: GroupByOptions| gbo.grouping,
-                GroupingSpecifier::Regex(Regex::new("bar").unwrap()),
+                GroupingSpecifier::Regex(Regex::new("bar").unwrap(), CaptureGroup::Number(0)),
             );
         }
 
@@ -392,6 +407,59 @@ mod tests {
         }
 
         // TODO Write missing test parses_stats
+    }
+
+    #[cfg(test)]
+    mod parse_capture_group {
+        use super::*;
+
+        #[test]
+        fn returns_default_if_option_is_missing() {
+            let clap = cb()
+                .groupers_by_regex()
+                .grouper_options_capture_group()
+                .command;
+            let args = vec!["appname", "--regex", "xeger--"];
+            let matches = clap.get_matches_from(args);
+            let result = parse_capture_group(&matches);
+            assert_eq!(CaptureGroup::Number(0), result);
+        }
+
+        #[test]
+        fn returns_number_on_success() {
+            let clap = cb()
+                .groupers_by_regex()
+                .grouper_options_capture_group()
+                .command;
+            let args = vec!["appname", "--regex", "xeger--", "--capture-group", "4"];
+            let matches = clap.get_matches_from(args);
+            let result = parse_capture_group(&matches);
+            assert_eq!(CaptureGroup::Number(4), result);
+        }
+
+        #[test]
+        fn returns_string_on_failure() {
+            let clap = cb()
+                .groupers_by_regex()
+                .grouper_options_capture_group()
+                .command;
+            let args = vec!["appname", "--regex", "xeger--", "--capture-group", "four"];
+            let matches = clap.get_matches_from(args);
+            let result = parse_capture_group(&matches);
+            assert_eq!(CaptureGroup::Name("four".to_string()), result);
+        }
+
+        #[test]
+        fn returns_string_on_number_embedded_in_text() {
+            let clap = cb()
+                .groupers_by_regex()
+                .grouper_options_capture_group()
+                .command;
+            let args = vec!["appname", "--regex", "xeger--", "--capture-group", "20four"];
+            let matches = clap.get_matches_from(args);
+            let result = parse_capture_group(&matches);
+            assert_eq!(CaptureGroup::Name("20four".to_string()), result);
+        }
     }
 
     #[cfg(test)]

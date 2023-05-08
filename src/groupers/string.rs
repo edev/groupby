@@ -155,7 +155,7 @@ where
 ///
 /// Providing a uniform interface to all string groupers reduces the complexity of calling code
 /// that might need to invoke the groupers at different times or under different conditions.
-/// Specifically, It reduces the complexity of running a particular grouper based on a
+/// Specifically, it reduces the complexity of running a particular grouper based on a
 /// [crate::command_line::options::GroupingSpecifier] from a match statement to simply
 /// `runner.run(value)`.
 ///
@@ -188,7 +188,7 @@ impl<'a, S: Into<String>> Runner<'a, S> {
         let run: Box<dyn FnMut(S)> = match spec {
             GroupingSpecifier::FirstChars(n) => Box::new(move |s| map.group_by_first_chars(s, *n)),
             GroupingSpecifier::LastChars(n) => Box::new(move |s| map.group_by_last_chars(s, *n)),
-            GroupingSpecifier::Regex(re) => Box::new(move |s| map.group_by_regex(s, re)),
+            GroupingSpecifier::Regex(re, _cg) => Box::new(move |s| map.group_by_regex(s, re)),
             GroupingSpecifier::FileExtension => Box::new(move |s| map.group_by_file_extension(s)),
             GroupingSpecifier::Counter => Box::new(move |s| map.group_by_counter(s)),
         };
@@ -205,6 +205,7 @@ impl<'a, S: Into<String>> Runner<'a, S> {
 mod tests {
     mod runner {
         use super::super::*;
+        use crate::command_line::options::CaptureGroup;
         use crate::grouped_collections::fake_map::*;
 
         // Verifies that Runner actually uses a given GroupingSpecifier properly.
@@ -229,7 +230,7 @@ mod tests {
         #[test]
         fn matches_regex() {
             matches(
-                GroupingSpecifier::Regex(Regex::new("b").unwrap()),
+                GroupingSpecifier::Regex(Regex::new("b").unwrap(), CaptureGroup::Number(0)),
                 "abc",
                 "b",
             );

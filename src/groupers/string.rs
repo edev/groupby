@@ -1,6 +1,6 @@
 //! A collection of helper methods for grouping [Strings](String) into a [GroupedCollection].
 
-use crate::command_line::options::GroupingSpecifier;
+use crate::command_line::options::{CaptureGroup, GroupingSpecifier};
 use crate::grouped_collections::*;
 use crate::matchers::string::*;
 use regex::Regex;
@@ -50,6 +50,7 @@ pub trait Groupers<List> {
     /// # Examples
     ///
     /// ```
+    /// use groupby::command_line::CaptureGroup;
     /// use groupby::grouped_collections::*;
     /// use groupby::groupers::string::Groupers;
     /// use regex::Regex;
@@ -57,12 +58,18 @@ pub trait Groupers<List> {
     ///
     /// let expected = vec!["Nineteen99".to_string()];
     /// let regex = Regex::new(r"\d+").unwrap();
+    /// let capture_group = CaptureGroup::Number(0);
     /// let mut map = HashMap::new();
-    /// map.group_by_regex(expected[0].clone(), &regex);
+    /// map.group_by_regex(expected[0].clone(), &regex, &capture_group);
     ///
     /// assert_eq!(Some(&expected), map.get(&"99".to_string()));
     /// ```
-    fn group_by_regex<S: Into<String>>(&mut self, line: S, regex: &Regex);
+    fn group_by_regex<S: Into<String>>(
+        &mut self,
+        line: S,
+        regex: &Regex,
+        capture_group: &CaptureGroup,
+    );
 
     /// Groups a filename string by its extension.
     ///
@@ -132,9 +139,16 @@ where
         self.add(key, line);
     }
 
-    fn group_by_regex<S: Into<String>>(&mut self, line: S, regex: &Regex) {
+    fn group_by_regex<S: Into<String>>(
+        &mut self,
+        line: S,
+        regex: &Regex,
+        capture_group: &CaptureGroup,
+    ) {
         let line = line.into();
-        let key = match_regex(&line, regex).unwrap_or("").to_string();
+        let key = match_regex(&line, regex, capture_group)
+            .unwrap_or("")
+            .to_string();
         self.add(key, line);
     }
 
@@ -155,7 +169,7 @@ where
 ///
 /// Providing a uniform interface to all string groupers reduces the complexity of calling code
 /// that might need to invoke the groupers at different times or under different conditions.
-/// Specifically, It reduces the complexity of running a particular grouper based on a
+/// Specifically, it reduces the complexity of running a particular grouper based on a
 /// [crate::command_line::options::GroupingSpecifier] from a match statement to simply
 /// `runner.run(value)`.
 ///
@@ -188,7 +202,7 @@ impl<'a, S: Into<String>> Runner<'a, S> {
         let run: Box<dyn FnMut(S)> = match spec {
             GroupingSpecifier::FirstChars(n) => Box::new(move |s| map.group_by_first_chars(s, *n)),
             GroupingSpecifier::LastChars(n) => Box::new(move |s| map.group_by_last_chars(s, *n)),
-            GroupingSpecifier::Regex(re) => Box::new(move |s| map.group_by_regex(s, re)),
+            GroupingSpecifier::Regex(re, cg) => Box::new(move |s| map.group_by_regex(s, re, cg)),
             GroupingSpecifier::FileExtension => Box::new(move |s| map.group_by_file_extension(s)),
             GroupingSpecifier::Counter => Box::new(move |s| map.group_by_counter(s)),
         };
@@ -205,6 +219,7 @@ impl<'a, S: Into<String>> Runner<'a, S> {
 mod tests {
     mod runner {
         use super::super::*;
+        use crate::command_line::options::CaptureGroup;
         use crate::grouped_collections::fake_map::*;
 
         // Verifies that Runner actually uses a given GroupingSpecifier properly.
@@ -229,7 +244,7 @@ mod tests {
         #[test]
         fn matches_regex() {
             matches(
-                GroupingSpecifier::Regex(Regex::new("b").unwrap()),
+                GroupingSpecifier::Regex(Regex::new("b").unwrap(), CaptureGroup::Number(0)),
                 "abc",
                 "b",
             );

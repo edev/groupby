@@ -33,6 +33,22 @@ pub struct InputOptions {
     pub separator: Separator,
 }
 
+/// A named or numbered regular expression capture group.
+///
+/// Group 0 is default; see [Regex] for more.
+///
+/// This enum simply represents a specification of a capture group. It does not guarantee that the
+/// capture group is present in a regular expression, nor does it even guarantee that a regular
+/// expression exists.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CaptureGroup {
+    /// A numbered capture group, where 0 is the default group, i.e. the whole match.
+    Number(usize),
+
+    /// A named capture group.
+    Name(String),
+}
+
 /// Specifies the user's chosen grouper.
 #[derive(Clone, Debug)]
 pub enum GroupingSpecifier {
@@ -44,7 +60,7 @@ pub enum GroupingSpecifier {
 
     /// Group by the provided regular expression. See [crate::matchers::string::match_regex] for
     /// details.
-    Regex(Regex),
+    Regex(Regex, CaptureGroup),
 
     /// Group by file extension. See [crate::matchers::string::match_file_extension] for details.
     FileExtension,
@@ -134,20 +150,20 @@ impl Separator {
 ///
 /// FirstChars(m) == FirstChars(n) iff m == n
 /// LastChars(m) == LastChars(n) iff m == n
-/// Regex(re1) == Regex(re2) iff re1.as_str() == re2.as_str()
+/// Regex(re1, cg1) == Regex(re2, cg2) iff re1.as_str() == re2.as_str() && cg1 == cg2
 ///
 /// # Examples
 ///
 /// ```
-/// use groupby::command_line::options::GroupingSpecifier::*;
+/// use groupby::command_line::options::{GroupingSpecifier::*, CaptureGroup};
 /// use regex;
 ///
 /// // Same == same.
 /// assert_eq!(FirstChars(7), FirstChars(7));
 /// assert_eq!(LastChars(8), LastChars(8));
 /// assert_eq!(
-///     Regex(regex::Regex::new("foo").unwrap()),
-///     Regex(regex::Regex::new("foo").unwrap())
+///     Regex(regex::Regex::new("foo").unwrap(), CaptureGroup::Number(4)),
+///     Regex(regex::Regex::new("foo").unwrap(), CaptureGroup::Number(4))
 /// );
 /// assert_eq!(FileExtension, FileExtension);
 /// assert_eq!(Counter, Counter);
@@ -156,15 +172,19 @@ impl Separator {
 /// assert_ne!(FirstChars(7), FirstChars(8));
 /// assert_ne!(LastChars(8), LastChars(9));
 /// assert_ne!(
-///     Regex(regex::Regex::new("foo").unwrap()),
-///     Regex(regex::Regex::new("bar").unwrap())
+///     Regex(regex::Regex::new("foo").unwrap(), CaptureGroup::Number(0)),
+///     Regex(regex::Regex::new("bar").unwrap(), CaptureGroup::Number(0))
+/// );
+/// assert_ne!(
+///     Regex(regex::Regex::new("foo").unwrap(), CaptureGroup::Number(0)),
+///     Regex(regex::Regex::new("foo").unwrap(), CaptureGroup::Number(1))
 /// );
 ///
 /// // Different variants are !=.
-/// assert_ne!(FirstChars(7), Regex(regex::Regex::new("bar").unwrap()));
+/// assert_ne!(FirstChars(7), Regex(regex::Regex::new("bar").unwrap(), CaptureGroup::Number(0)));
 /// assert_ne!(LastChars(8), FirstChars(8));
 /// assert_ne!(
-///     Regex(regex::Regex::new("foo").unwrap()),
+///     Regex(regex::Regex::new("foo").unwrap(), CaptureGroup::Number(3)),
 ///     LastChars(9)
 /// );
 /// assert_ne!(FirstChars(7), FileExtension);
@@ -181,8 +201,8 @@ impl PartialEq for GroupingSpecifier {
                 LastChars(n) => m == n,
                 _ => false,
             },
-            Regex(re1) => match other {
-                Regex(re2) => re1.as_str() == re2.as_str(),
+            Regex(re1, cg1) => match other {
+                Regex(re2, cg2) => re1.as_str() == re2.as_str() && cg1 == cg2,
                 _ => false,
             },
             FileExtension => matches!(other, FileExtension),

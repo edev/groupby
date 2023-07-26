@@ -45,18 +45,19 @@ where
     };
 
     // Parse grouping specifier.
-    let grouping = if matches.is_present("group_by_first_chars") {
-        let n = parse_numeric_value(&matches, "group_by_first_chars");
+    let grouping = if matches.is_present("groupers_by_first_chars") {
+        let n = parse_numeric_value(&matches, "groupers_by_first_chars");
         GroupingSpecifier::FirstChars(n)
-    } else if matches.is_present("group_by_last_chars") {
-        let n = parse_numeric_value(&matches, "group_by_last_chars");
+    } else if matches.is_present("groupers_by_last_chars") {
+        let n = parse_numeric_value(&matches, "groupers_by_last_chars");
         GroupingSpecifier::LastChars(n)
-    } else if matches.is_present("group_by_regex") {
-        let re = parse_regex_value(&matches, "group_by_regex");
-        GroupingSpecifier::Regex(re)
-    } else if matches.is_present("group_by_file_extension") {
+    } else if matches.is_present("groupers_by_regex") {
+        let re = parse_regex_value(&matches, "groupers_by_regex");
+        let cg = parse_capture_group(&matches);
+        GroupingSpecifier::Regex(re, cg)
+    } else if matches.is_present("groupers_by_file_extension") {
         GroupingSpecifier::FileExtension
-    } else if matches.is_present("group_by_counter") {
+    } else if matches.is_present("groupers_by_counter") {
         GroupingSpecifier::Counter
     } else {
         panic!(
@@ -72,7 +73,7 @@ where
     match GroupingSpecifier::FirstChars(4) {
         GroupingSpecifier::FirstChars(_) => (),
         GroupingSpecifier::LastChars(_) => (),
-        GroupingSpecifier::Regex(_) => (),
+        GroupingSpecifier::Regex(_, _) => (),
         GroupingSpecifier::FileExtension => (),
         GroupingSpecifier::Counter => (),
     };
@@ -132,6 +133,20 @@ where
 pub fn parse(command: Command<'static>) -> GroupByOptions {
     // parse() wraps parse_from() so we can use dependency injection for testing.
     parse_from(command, |c| c.get_matches())
+}
+
+// Parses the capture group option, defaulting to 0 if not present.
+//
+// The capture group can be a number or a name, so if it doesn't parse as a usize, we'll assume
+// it's a name.
+fn parse_capture_group(matches: &ArgMatches) -> CaptureGroup {
+    match matches.value_of("grouper_options_capture_group") {
+        Some(s) => match s.parse() {
+            Ok(n) => CaptureGroup::Number(n),
+            Err(_) => CaptureGroup::Name(s.to_string()),
+        },
+        None => CaptureGroup::Number(0),
+    }
 }
 
 // Parses a key with a numeric value; expects that the key is present and has a value.
@@ -226,7 +241,7 @@ mod tests {
         }
 
         #[test]
-        fn parses_group_by_first_chars() {
+        fn parses_groupers_by_first_chars() {
             // Short
             parses(
                 &vec!["app", "-w", "-f8"],
@@ -237,7 +252,7 @@ mod tests {
         }
 
         #[test]
-        fn parses_group_by_last_chars() {
+        fn parses_groupers_by_last_chars() {
             // Short
             parses(
                 &vec!["app", "-w", "-l9"],
@@ -247,24 +262,24 @@ mod tests {
         }
 
         #[test]
-        fn parses_group_by_regex() {
+        fn parses_groupers_by_regex() {
             // Short
             parses(
                 &vec!["app", "-w", "-r", "foo"],
                 |gbo: GroupByOptions| gbo.grouping,
-                GroupingSpecifier::Regex(Regex::new("foo").unwrap()),
+                GroupingSpecifier::Regex(Regex::new("foo").unwrap(), CaptureGroup::Number(0)),
             );
 
             // Long
             parses(
                 &vec!["app", "-w", "--regex", "bar"],
                 |gbo: GroupByOptions| gbo.grouping,
-                GroupingSpecifier::Regex(Regex::new("bar").unwrap()),
+                GroupingSpecifier::Regex(Regex::new("bar").unwrap(), CaptureGroup::Number(0)),
             );
         }
 
         #[test]
-        fn parses_group_by_file_extension() {
+        fn parses_groupers_by_file_extension() {
             // No short option
 
             // Long
@@ -276,7 +291,7 @@ mod tests {
         }
 
         #[test]
-        fn parses_group_by_counter() {
+        fn parses_groupers_by_counter() {
             // No short option
 
             // Long
@@ -395,24 +410,77 @@ mod tests {
     }
 
     #[cfg(test)]
+    mod parse_capture_group {
+        use super::*;
+
+        #[test]
+        fn returns_default_if_option_is_missing() {
+            let clap = cb()
+                .groupers_by_regex()
+                .grouper_options_capture_group()
+                .command;
+            let args = vec!["appname", "--regex", "xeger--"];
+            let matches = clap.get_matches_from(args);
+            let result = parse_capture_group(&matches);
+            assert_eq!(CaptureGroup::Number(0), result);
+        }
+
+        #[test]
+        fn returns_number_on_success() {
+            let clap = cb()
+                .groupers_by_regex()
+                .grouper_options_capture_group()
+                .command;
+            let args = vec!["appname", "--regex", "xeger--", "--capture-group", "4"];
+            let matches = clap.get_matches_from(args);
+            let result = parse_capture_group(&matches);
+            assert_eq!(CaptureGroup::Number(4), result);
+        }
+
+        #[test]
+        fn returns_string_on_failure() {
+            let clap = cb()
+                .groupers_by_regex()
+                .grouper_options_capture_group()
+                .command;
+            let args = vec!["appname", "--regex", "xeger--", "--capture-group", "four"];
+            let matches = clap.get_matches_from(args);
+            let result = parse_capture_group(&matches);
+            assert_eq!(CaptureGroup::Name("four".to_string()), result);
+        }
+
+        #[test]
+        fn returns_string_on_number_embedded_in_text() {
+            let clap = cb()
+                .groupers_by_regex()
+                .grouper_options_capture_group()
+                .command;
+            let args = vec!["appname", "--regex", "xeger--", "--capture-group", "20four"];
+            let matches = clap.get_matches_from(args);
+            let result = parse_capture_group(&matches);
+            assert_eq!(CaptureGroup::Name("20four".to_string()), result);
+        }
+    }
+
+    #[cfg(test)]
     mod parse_numeric_value {
         use super::*;
 
         #[test]
         fn returns_number() {
-            let clap = cb().group_by_first_chars().command;
+            let clap = cb().groupers_by_first_chars().command;
             let args = vec!["appname", "-f", "4"];
             let matches = clap.get_matches_from(args);
-            assert_eq!(4, parse_numeric_value(&matches, "group_by_first_chars"));
+            assert_eq!(4, parse_numeric_value(&matches, "groupers_by_first_chars"));
         }
 
         #[test]
         #[should_panic]
         fn panics_on_failed_parse() {
-            let clap = cb().group_by_first_chars().command;
+            let clap = cb().groupers_by_first_chars().command;
             let args = vec!["appname", "-f", "four"];
             let matches = clap.get_matches_from(args);
-            parse_numeric_value::<usize>(&matches, "group_by_first_chars");
+            parse_numeric_value::<usize>(&matches, "groupers_by_first_chars");
         }
     }
 
@@ -422,10 +490,10 @@ mod tests {
 
         #[test]
         fn returns_matching_regex() {
-            let clap = CommandBuilder::new(command!()).group_by_regex().command;
+            let clap = CommandBuilder::new(command!()).groupers_by_regex().command;
             let args = vec!["appname", "-r", "(foo)?bar"];
             let matches = clap.get_matches_from(args);
-            let re = parse_regex_value(&matches, "group_by_regex");
+            let re = parse_regex_value(&matches, "groupers_by_regex");
             assert!(re.is_match("bar"));
             assert!(re.is_match("foobar"));
             assert!(!re.is_match("soap"));
@@ -434,10 +502,10 @@ mod tests {
         #[test]
         #[should_panic(expected = "unclosed group")]
         fn panics_on_invalid_regex() {
-            let clap = CommandBuilder::new(command!()).group_by_regex().command;
+            let clap = CommandBuilder::new(command!()).groupers_by_regex().command;
             let invalid_args = vec!["appname", "-r", "(foo"];
             let matches = clap.get_matches_from(invalid_args);
-            parse_regex_value(&matches, "group_by_regex"); // Should panic.
+            parse_regex_value(&matches, "groupers_by_regex"); // Should panic.
         }
     }
 }

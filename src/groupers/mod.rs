@@ -65,7 +65,7 @@
 //!    please justify this decision in your pull request.) To add your grouper:
 //!
 //!    1. Add a new command-line option as a method in [CommandBuilder]. Add your method to
-//!       [grouping_options()] and [group_groupers()]. Remember to add documentation and update
+//!       [groupers()] and [group_groupers()]. Remember to add documentation and update
 //!       unit tests. Your new option won't do anything, yet. (If you try to use it, it should
 //!       panic, saying, "No grouping option was specified, but the argument parser didn't catch
 //!       the issue. Please report this!")
@@ -85,7 +85,7 @@
 //! [groupby]: https://github.com/edev/groupby/tree/master/src/bin/groupby.rs
 //! [GroupByOptions]: crate::command_line::options::GroupByOptions
 //! [Groupers]: string::Groupers
-//! [grouping_options()]: crate::command_line::args::CommandBuilder::grouping_options
+//! [groupers()]: crate::command_line::args::CommandBuilder::groupers
 //! [GroupingSpecifier]: crate::command_line::options::GroupingSpecifier
 //! [Runner]: string::Runner
 

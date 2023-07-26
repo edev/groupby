@@ -1,5 +1,6 @@
 //! Matchers for [String] values.
 
+use crate::command_line::CaptureGroup;
 use global_counter::primitive::exact::CounterUsize;
 use regex::Regex;
 
@@ -61,26 +62,46 @@ pub fn match_last_n_chars(string: &str, n: usize) -> &str {
 /// # Examples
 ///
 /// ```
+/// use groupby::command_line::CaptureGroup;
 /// use groupby::matchers::string;
 ///
 /// let first_word = regex::Regex::new(r"\w+").unwrap();
 /// let second_word = regex::Regex::new(r"\w+\W+(\w+)").unwrap();
 /// let third_word = regex::Regex::new(r"(?:\w+\W+){2}(\w+)").unwrap();
+/// let third_capture_group = regex::Regex::new(r"(\w+)\W(\w+)\W(\w+)").unwrap();
 ///
-/// assert_eq!("Bishop", string::match_regex("Bishop takes queen", &first_word).unwrap());
-/// assert_eq!("takes",  string::match_regex("Bishop takes queen", &second_word).unwrap());
-/// assert_eq!("queen",  string::match_regex("Bishop takes queen", &third_word).unwrap());
+/// assert_eq!(
+///     Some("Bishop"),
+///     string::match_regex("Bishop takes queen", &first_word, &CaptureGroup::Number(0)),
+/// );
+/// assert_eq!(
+///     Some("takes"),
+///     string::match_regex("Bishop takes queen", &second_word, &CaptureGroup::Number(1)),
+/// );
+/// assert_eq!(
+///     Some("queen"),
+///     string::match_regex("Bishop takes queen", &third_word, &CaptureGroup::Number(1)),
+/// );
+/// assert_eq!(
+///     Some("queen"),
+///     string::match_regex(
+///         "Bishop takes queen", &third_capture_group, &CaptureGroup::Number(3)
+///     ),
+/// );
 /// ```
-pub fn match_regex<'a, 'b>(string: &'a str, regex: &'b Regex) -> Option<&'a str> {
-    match regex.captures(string) {
-        Some(caps) => match caps.get(1) {
-            Some(mat) => Some(&string[(mat.start()..mat.end())]),
-            None => match caps.get(0) {
-                Some(mat) => Some(&string[(mat.start()..mat.end())]),
-                None => None,
-            },
-        },
-        None => None,
+pub fn match_regex<'a>(
+    string: &'a str,
+    regex: &Regex,
+    capture_group: &CaptureGroup,
+) -> Option<&'a str> {
+    let captures = match regex.captures(string) {
+        Some(captures) => captures,
+        None => return None,
+    };
+
+    match capture_group {
+        CaptureGroup::Number(n) => captures.get(*n).map(|mat| mat.as_str()),
+        CaptureGroup::Name(s) => captures.name(s).map(|mat| mat.as_str()),
     }
 }
 

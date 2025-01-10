@@ -57,7 +57,7 @@ mod tests {
         fn spawns_command_correctly() {
             let program = "groupby";
             let shell_args = ["-f3", "-c", "echo recursion five!"];
-            let handle = command::<MockCommand, _, _>(program.clone(), shell_args.clone(), ", ");
+            let handle = command::<MockCommand, _, _>(program, shell_args.clone(), ", ");
 
             let expected: Vec<String> = vec![
                 "new(groupby)",

@@ -85,8 +85,8 @@
 /// - Boxed trait objects (`Box<GroupedCollection<..>>`) do not work at this time.
 ///
 /// - Trait objects can run into borrowing and lifetime issues; you should probably use generics
-/// rather than trait objects where possible to avoid these issues. As far as I know, monomorphic
-/// types (including generics) work perfectly.
+///   rather than trait objects where possible to avoid these issues. As far as I know, monomorphic
+///   types (including generics) work perfectly.
 ///
 /// If you have a solution to these issues, please submit a GitHub issue: at time of writing, I am
 /// still fairly new to Rust and find these lifetime issues quite perplexing, so it's entirely

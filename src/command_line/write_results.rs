@@ -146,7 +146,7 @@ pub fn write_results<'a, 'b, M, O>(
 }
 
 /// Provides a human-readable description of the length of a vector, like "1 item" or "48 items".
-pub fn item_count<_T>(items: &Vec<_T>) -> String {
+pub fn item_count<_T>(items: &[_T]) -> String {
     if items.len() == 1 {
         "1 item".to_string()
     } else {
@@ -551,7 +551,7 @@ mod tests {
         fn works_with_more_than_1_item() {
             for i in 2..4 {
                 let expected = format!("{} items", i);
-                let actual = item_count(&(0..i).collect());
+                let actual = item_count(&(0..i).collect::<Vec<_>>());
                 assert_eq!(expected, actual);
             }
         }

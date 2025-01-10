@@ -135,7 +135,7 @@ pub fn parse(command: Command<'static>) -> GroupByOptions {
     parse_from(command, |c| c.get_matches())
 }
 
-// Parses the capture group option, defaulting to 0 if not present.
+// Parses the capture group option.
 //
 // The capture group can be a number or a name, so if it doesn't parse as a usize, we'll assume
 // it's a name.
@@ -145,7 +145,7 @@ fn parse_capture_group(matches: &ArgMatches) -> CaptureGroup {
             Ok(n) => CaptureGroup::Number(n),
             Err(_) => CaptureGroup::Name(s.to_string()),
         },
-        None => CaptureGroup::Number(0),
+        None => CaptureGroup::Default,
     }
 }
 
@@ -267,14 +267,14 @@ mod tests {
             parses(
                 &vec!["app", "-w", "-r", "foo"],
                 |gbo: GroupByOptions| gbo.grouping,
-                GroupingSpecifier::Regex(Regex::new("foo").unwrap(), CaptureGroup::Number(0)),
+                GroupingSpecifier::Regex(Regex::new("foo").unwrap(), CaptureGroup::Default),
             );
 
             // Long
             parses(
                 &vec!["app", "-w", "--regex", "bar"],
                 |gbo: GroupByOptions| gbo.grouping,
-                GroupingSpecifier::Regex(Regex::new("bar").unwrap(), CaptureGroup::Number(0)),
+                GroupingSpecifier::Regex(Regex::new("bar").unwrap(), CaptureGroup::Default),
             );
         }
 
@@ -422,7 +422,7 @@ mod tests {
             let args = vec!["appname", "--regex", "xeger--"];
             let matches = clap.get_matches_from(args);
             let result = parse_capture_group(&matches);
-            assert_eq!(CaptureGroup::Number(0), result);
+            assert_eq!(CaptureGroup::Default, result);
         }
 
         #[test]

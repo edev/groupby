@@ -54,10 +54,7 @@ pub fn match_last_n_chars(string: &str, n: usize) -> &str {
     }
 }
 
-/// Returns the first match of the regular expression within a string, if any.
-///
-/// If the regular expression includes capture groups, returns the first capture group's match.
-/// Otherwise, returns the overall match.
+/// Returns the first match of the regular expression (or capture group) within a string, if any.
 ///
 /// # Examples
 ///
@@ -69,11 +66,29 @@ pub fn match_last_n_chars(string: &str, n: usize) -> &str {
 /// let second_word = regex::Regex::new(r"\w+\W+(\w+)").unwrap();
 /// let third_word = regex::Regex::new(r"(?:\w+\W+){2}(\w+)").unwrap();
 /// let third_capture_group = regex::Regex::new(r"(\w+)\W(\w+)\W(\w+)").unwrap();
+/// let named_second_word = regex::Regex::new(r"\w+\W+(?<second>\w+)").unwrap();
 ///
+/// // Default behavior: returns capture group 1 if present; otherwise, returns the entire match.
+/// assert_eq!(
+///     Some("Bishop"),
+///     string::match_regex("Bishop takes queen", &first_word, &CaptureGroup::Default),
+/// );
+/// assert_eq!(
+///     Some("takes"),
+///     string::match_regex("Bishop takes queen", &second_word, &CaptureGroup::Default),
+/// );
+/// assert_eq!(
+///     Some("queen"),
+///     string::match_regex("Bishop takes queen", &third_word, &CaptureGroup::Default),
+/// );
+///
+/// // `CaptureGroup::Number(0)` returns the entire match.
 /// assert_eq!(
 ///     Some("Bishop"),
 ///     string::match_regex("Bishop takes queen", &first_word, &CaptureGroup::Number(0)),
 /// );
+///
+/// // `CaptureGroup::Number(1)` returns the first capture group.
 /// assert_eq!(
 ///     Some("takes"),
 ///     string::match_regex("Bishop takes queen", &second_word, &CaptureGroup::Number(1)),
@@ -82,10 +97,20 @@ pub fn match_last_n_chars(string: &str, n: usize) -> &str {
 ///     Some("queen"),
 ///     string::match_regex("Bishop takes queen", &third_word, &CaptureGroup::Number(1)),
 /// );
+///
+/// // `CaptureGroup::Number(n)` returns the nth capture group.
 /// assert_eq!(
 ///     Some("queen"),
 ///     string::match_regex(
-///         "Bishop takes queen", &third_capture_group, &CaptureGroup::Number(3)
+///         "Bishop takes queen", &third_capture_group, &CaptureGroup::Number(3),
+///     ),
+/// );
+///
+/// // `CaptureGroup::Name(s)` returns a capture group by name.
+/// assert_eq!(
+///     Some("takes"),
+///     string::match_regex(
+///         "Bishop takes queen", &named_second_word, &CaptureGroup::Name("second".to_string()),
 ///     ),
 /// );
 /// ```
@@ -102,6 +127,10 @@ pub fn match_regex<'a>(
     match capture_group {
         CaptureGroup::Number(n) => captures.get(*n).map(|mat| mat.as_str()),
         CaptureGroup::Name(s) => captures.name(s).map(|mat| mat.as_str()),
+        CaptureGroup::Default => captures
+            .get(1)
+            .map(|mat| mat.as_str())
+            .or_else(|| captures.get(0).map(|mat| mat.as_str())),
     }
 }
 

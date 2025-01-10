@@ -35,8 +35,6 @@ pub struct InputOptions {
 
 /// A named or numbered regular expression capture group.
 ///
-/// Group 0 is default; see [Regex] for more.
-///
 /// This enum simply represents a specification of a capture group. It does not guarantee that the
 /// capture group is present in a regular expression, nor does it even guarantee that a regular
 /// expression exists.
@@ -47,6 +45,9 @@ pub enum CaptureGroup {
 
     /// A named capture group.
     Name(String),
+
+    /// Request default behavior: use capture group 1 if present; otherwise, match the whole regex.
+    Default,
 }
 
 /// Specifies the user's chosen grouper.
